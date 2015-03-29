@@ -1,0 +1,29 @@
+implicit 2 10  ! solver_type  dimension  guess_for_max_number_of_nodes_a_node_contributes_to (b/w 0-100; See README)
+
+3 8 1 0 0 0 8    ! num_elements  num_nodes  num_materials  num_constraint_eqns  num_force_bcs  num_traction_bcs  num_sides_with_abcs
+
+0.05 0.01 1 1      ! total_time (secs)  time_step (secs)  output_frequency  displacement_to_be_written_in_the_output_files (total (1) or delta (0))
+
+qua 1 2 5 4 1
+qua 7 3 6 8 1
+coh 7 8 5 2 1
+
+0.00 2.00 
+0.00 1.00 
+0.00 0.00
+1.00 2.00
+1.00 1.00
+1.00 0.00
+0.00 1.00
+1.00 1.00
+
+3640 0.3 1.0E18 1.0 3000.0  ! youngs_modulus  poissons_ratio  viscosity_coefficient  power_law_exponent  density (SI units)
+
+1 0 0 0.0 0.005
+2 0 1 0.0 0.0
+3 0 0 0.0 0.0
+4 0 0 0.0 0.005
+5 0 1 0.0 0.0
+6 0 0 0.0 0.0
+7 0 1 0.0 0.0
+8 0 1 0.0 0.0

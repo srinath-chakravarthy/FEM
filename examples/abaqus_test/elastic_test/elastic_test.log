@@ -1,0 +1,18 @@
+ifort -g -c -fPIC -auto -mP2OPT_hpo_vec_divbyzero=F -extend_source -w90 -w95 -WB -I%I
+Abaqus JOB elastic_test
+Abaqus 6.11-1
+Begin Analysis Input File Processor
+Sat Mar 28 12:28:36 2015
+Run pre.exe
+Abaqus License Manager checked out the following licenses:
+Abaqus/Standard checked out 5 tokens.
+Sat Mar 28 12:28:37 2015
+End Analysis Input File Processor
+Begin Abaqus/Standard Analysis
+Sat Mar 28 12:28:37 2015
+Run standard.exe
+Abaqus License Manager checked out the following licenses:
+Abaqus/Standard checked out 5 tokens.
+Sat Mar 28 12:28:37 2015
+End Abaqus/Standard Analysis
+Abaqus JOB elastic_test COMPLETED

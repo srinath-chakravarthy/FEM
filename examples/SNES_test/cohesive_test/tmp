@@ -1,0 +1,314 @@
+ Reading input ...
+ Partitioning mesh ...
+ Reading mesh data ...
+ Original Nodes
+ Forming [K] ...
+ Setting up environment ...
+Mumps row pivot threshhold =    1.00E-06
+Mumps determinant=(   9.71E-01   0.00E+00)*2^***
+Mumps row pivot threshhold =    1.00E-06
+Mumps determinant=(   9.71E-01   0.00E+00)*2^***
+ Interval: 1
+     Resetting Environment ...
+     Forming RHS ...
+     Solving ...
+ Viewing the Force Vector
+ Viewing the Residual Vector
+ Viewing the Force Vector
+ Viewing the Residual Vector
+     SNES Iteration Count: 1
+Vec Object: 2 MPI processes
+  type: mpi
+Process [0]
+2.59576e-32
+5e-05
+2.59576e-32
+2.52785e-05
+-2.59576e-32
+-6.05676e-32
+-2.59576e-32
+5e-05
+Process [1]
+-2.59576e-32
+2.52785e-05
+2.59576e-32
+-6.05676e-32
+-2.59576e-32
+-2.47215e-05
+2.59576e-32
+-2.47215e-05
+     Getting stress ....
+ Interval: 2
+     Resetting Environment ...
+     Forming RHS ...
+     Solving ...
+ Viewing the Force Vector
+ Viewing the Residual Vector
+ Viewing the Force Vector
+ Viewing the Residual Vector
+ Viewing the Force Vector
+ Viewing the Residual Vector
+ Viewing the Force Vector
+ Viewing the Residual Vector
+ Viewing the Force Vector
+ Viewing the Residual Vector
+ Viewing the Force Vector
+ Viewing the Residual Vector
+ Viewing the Force Vector
+ Viewing the Residual Vector
+ Viewing the Force Vector
+ Viewing the Residual Vector
+ Viewing the Force Vector
+ Viewing the Residual Vector
+ Viewing the Force Vector
+ Viewing the Residual Vector
+ Viewing the Force Vector
+ Viewing the Residual Vector
+ Viewing the Force Vector
+ Viewing the Residual Vector
+ Viewing the Force Vector
+ Viewing the Residual Vector
+ Viewing the Force Vector
+ Viewing the Residual Vector
+ Viewing the Force Vector
+ Viewing the Residual Vector
+ Viewing the Force Vector
+ Viewing the Residual Vector
+ Viewing the Force Vector
+ Viewing the Residual Vector
+ Viewing the Force Vector
+ Viewing the Residual Vector
+ Viewing the Force Vector
+ Viewing the Residual Vector
+ Viewing the Force Vector
+ Viewing the Residual Vector
+ Viewing the Force Vector
+ Viewing the Residual Vector
+ Viewing the Force Vector
+ Viewing the Residual Vector
+ Viewing the Force Vector
+ Viewing the Residual Vector
+ Viewing the Force Vector
+ Viewing the Residual Vector
+     SNES Iteration Count: 1
+Vec Object: 2 MPI processes
+  type: mpi
+Process [0]
+2.74292e-32
+5e-05
+2.44699e-32
+2.73999e-05
+-2.44859e-32
+-6.13262e-32
+-2.44699e-32
+5e-05
+Process [1]
+-2.74292e-32
+2.31724e-05
+2.74452e-32
+-5.98465e-32
+-2.74452e-32
+-2.68429e-05
+2.44859e-32
+-2.26153e-05
+     Getting stress ....
+ Interval: 3
+     Resetting Environment ...
+     Forming RHS ...
+     Solving ...
+ Viewing the Force Vector
+ Viewing the Residual Vector
+ Viewing the Force Vector
+ Viewing the Residual Vector
+ Viewing the Force Vector
+ Viewing the Residual Vector
+ Viewing the Force Vector
+ Viewing the Residual Vector
+ Viewing the Force Vector
+ Viewing the Residual Vector
+ Viewing the Force Vector
+ Viewing the Residual Vector
+ Viewing the Force Vector
+ Viewing the Residual Vector
+ Viewing the Force Vector
+ Viewing the Residual Vector
+ Viewing the Force Vector
+ Viewing the Residual Vector
+ Viewing the Force Vector
+ Viewing the Residual Vector
+ Viewing the Force Vector
+ Viewing the Residual Vector
+ Viewing the Force Vector
+ Viewing the Residual Vector
+ Viewing the Force Vector
+ Viewing the Residual Vector
+ Viewing the Force Vector
+ Viewing the Residual Vector
+ Viewing the Force Vector
+ Viewing the Residual Vector
+ Viewing the Force Vector
+ Viewing the Residual Vector
+ Viewing the Force Vector
+ Viewing the Residual Vector
+ Viewing the Force Vector
+ Viewing the Residual Vector
+ Viewing the Force Vector
+ Viewing the Residual Vector
+ Viewing the Force Vector
+ Viewing the Residual Vector
+ Viewing the Force Vector
+ Viewing the Residual Vector
+     SNES Iteration Count: 0
+Vec Object: 2 MPI processes
+  type: mpi
+Process [0]
+2.74292e-32
+5e-05
+2.44699e-32
+2.73999e-05
+-2.44859e-32
+-6.13262e-32
+-2.44699e-32
+5e-05
+Process [1]
+-2.74292e-32
+2.31724e-05
+2.74452e-32
+-5.98465e-32
+-2.74452e-32
+-2.68429e-05
+2.44859e-32
+-2.26153e-05
+     Getting stress ....
+ Interval: 4
+     Resetting Environment ...
+     Forming RHS ...
+     Solving ...
+ Viewing the Force Vector
+ Viewing the Residual Vector
+ Viewing the Force Vector
+ Viewing the Residual Vector
+ Viewing the Force Vector
+ Viewing the Residual Vector
+ Viewing the Force Vector
+ Viewing the Residual Vector
+ Viewing the Force Vector
+ Viewing the Residual Vector
+ Viewing the Force Vector
+ Viewing the Residual Vector
+ Viewing the Force Vector
+ Viewing the Residual Vector
+ Viewing the Force Vector
+ Viewing the Residual Vector
+ Viewing the Force Vector
+ Viewing the Residual Vector
+ Viewing the Force Vector
+ Viewing the Residual Vector
+ Viewing the Force Vector
+ Viewing the Residual Vector
+ Viewing the Force Vector
+ Viewing the Residual Vector
+ Viewing the Force Vector
+ Viewing the Residual Vector
+ Viewing the Force Vector
+ Viewing the Residual Vector
+ Viewing the Force Vector
+ Viewing the Residual Vector
+ Viewing the Force Vector
+ Viewing the Residual Vector
+ Viewing the Force Vector
+ Viewing the Residual Vector
+ Viewing the Force Vector
+ Viewing the Residual Vector
+ Viewing the Force Vector
+ Viewing the Residual Vector
+ Viewing the Force Vector
+ Viewing the Residual Vector
+     SNES Iteration Count: 0
+Vec Object: 2 MPI processes
+  type: mpi
+Process [0]
+2.74292e-32
+5e-05
+2.44699e-32
+2.73999e-05
+-2.44859e-32
+-6.13262e-32
+-2.44699e-32
+5e-05
+Process [1]
+-2.74292e-32
+2.31724e-05
+2.74452e-32
+-5.98465e-32
+-2.74452e-32
+-2.68429e-05
+2.44859e-32
+-2.26153e-05
+     Getting stress ....
+ Interval: 5
+     Resetting Environment ...
+     Forming RHS ...
+     Solving ...
+ Viewing the Force Vector
+ Viewing the Residual Vector
+ Viewing the Force Vector
+ Viewing the Residual Vector
+ Viewing the Force Vector
+ Viewing the Residual Vector
+ Viewing the Force Vector
+ Viewing the Residual Vector
+ Viewing the Force Vector
+ Viewing the Residual Vector
+ Viewing the Force Vector
+ Viewing the Residual Vector
+ Viewing the Force Vector
+ Viewing the Residual Vector
+ Viewing the Force Vector
+ Viewing the Residual Vector
+ Viewing the Force Vector
+ Viewing the Residual Vector
+ Viewing the Force Vector
+ Viewing the Residual Vector
+ Viewing the Force Vector
+ Viewing the Residual Vector
+ Viewing the Force Vector
+ Viewing the Residual Vector
+ Viewing the Force Vector
+ Viewing the Residual Vector
+ Viewing the Force Vector
+ Viewing the Residual Vector
+ Viewing the Force Vector
+ Viewing the Residual Vector
+ Viewing the Force Vector
+ Viewing the Residual Vector
+ Viewing the Force Vector
+ Viewing the Residual Vector
+ Viewing the Force Vector
+ Viewing the Residual Vector
+ Viewing the Force Vector
+ Viewing the Residual Vector
+     SNES Iteration Count: 0
+Vec Object: 2 MPI processes
+  type: mpi
+Process [0]
+2.74292e-32
+5e-05
+2.44699e-32
+2.73999e-05
+-2.44859e-32
+-6.13262e-32
+-2.44699e-32
+5e-05
+Process [1]
+-2.74292e-32
+2.31724e-05
+2.74452e-32
+-5.98465e-32
+-2.74452e-32
+-2.68429e-05
+2.44859e-32
+-2.26153e-05
+     Getting stress ....
+ Cleaning up ...
+ Finished

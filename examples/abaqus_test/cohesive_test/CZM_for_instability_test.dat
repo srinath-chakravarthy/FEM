@@ -1,0 +1,242 @@
+1
+
+   Abaqus 6.11-1                                  Date 28-Mar-2015   Time 12:49:05
+   For use by Team AWXS under license from Dassault Systemes or its subsidiary.
+
+
+
+                         The Abaqus Software is a product of:
+
+                           Dassault Systemes Simulia Corp.
+                                 Rising Sun Mills
+                                 166 Valley Street
+                           Providence, RI 02909-2499, USA
+ 
+
+
+                   The Abaqus Software is available only under license
+                   from Dassault Systemes or its subsidiary and may be
+                   used or reproduced only in accordance with the terms
+                   of such license.
+ 
+                          On machine helleshome 
+                          you are authorized to run
+                          Abaqus/Standard until 07-Jul-2028
+
+                          Your site id is: AE125930 
+
+
+ 
+                    For assistance or any other information you may
+                    obtain contact information for your local office
+                    from the world wide web at:
+
+                      http://www.simulia.com/about/locations.html
+
+ 
+                * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * 
+                *                                                         * 
+                *                   *****************                     * 
+                *                   *  N O T I C E  *                     * 
+                *                   *****************                     * 
+                *                                                         * 
+                *                                                         * 
+                *                    Abaqus 6.11-1                        * 
+                *                                                         * 
+                *          BUILD ID: 2011_04_21-13.08.34 111392           * 
+                *                                                         * 
+                *                                                         * 
+                *  Please make sure you are using release 6.11 manuals    * 
+                *  plus the notes accompanying this release.              * 
+                *                                                         * 
+                *                                                         * 
+                *                                                         * 
+                *                                                         * 
+                * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * 
+
+
+ 
+
+
+
+     PROCESSING PART, INSTANCE, AND ASSEMBLY INFORMATION
+   *******************************************************
+
+
+     END PROCESSING PART, INSTANCE, AND ASSEMBLY INFORMATION
+   ***********************************************************
+
+
+
+
+     OPTIONS BEING PROCESSED
+   ***************************
+
+
+  *userelement, type=U1, nodes=4, coordinates=2
+
+ ***WARNING: USER SUBROUTINE UEL WILL BE USED WITH THE STAVEV ARRAY DIMENSIONED 
+             TO ONE SINCE THE VARIABLE PARAMETER HAS NOT BEEN SPECIFIED. 
+             CONSEQUENTLY, DEFINING MORE THAN ONE STATEV ENTRY IN SUBROUTINE 
+             UEL WILL CAUSE CODE EXECUTION ERRORS.
+  *Heading
+  *Node
+  *Element, type=CPE4R
+  *Element, type=U1
+  *Elset, elset=ASSEMBLY_PART-1-1_CZ
+  *Elset, elset=ASSEMBLY_PART-1-1__I1
+  *Nset, nset=ASSEMBLY__PICKEDSET4
+  *Nset, nset=ASSEMBLY__PICKEDSET5
+  *Nset, nset=ASSEMBLY__PICKEDSET6
+  *Nset, nset=ASSEMBLY__PICKEDSET7
+  *Elset, elset=ASSEMBLY__PICKEDSET6
+  *material, name=MATERIAL-1
+  *elastic
+  *solidsection, elset=ASSEMBLY_PART-1-1__I1, material=MATERIAL-1
+  *userelement, type=U1, nodes=4, coordinates=2
+
+ ***WARNING: USER SUBROUTINE UEL WILL BE USED WITH THE STAVEV ARRAY DIMENSIONED 
+             TO ONE SINCE THE VARIABLE PARAMETER HAS NOT BEEN SPECIFIED. 
+             CONSEQUENTLY, DEFINING MORE THAN ONE STATEV ENTRY IN SUBROUTINE 
+             UEL WILL CAUSE CODE EXECUTION ERRORS.
+  *boundary
+  *boundary
+  *boundary
+  *boundary
+  *solidsection, elset=ASSEMBLY_PART-1-1__I1, material=MATERIAL-1
+  *uelproperty, elset=ASSEMBLY_PART-1-1_CZ
+  *output, field, variable=PRESELECT
+  *output, history
+  *elementoutput, elset=ASSEMBLY__PICKEDSET6
+  *output, field, variable=PRESELECT
+  *output, history
+  *elementoutput, elset=ASSEMBLY__PICKEDSET6
+  *output, field, variable=PRESELECT
+  *output, history
+  *elementoutput, elset=ASSEMBLY__PICKEDSET6
+  *Step, name=Step-1
+  *output, field, variable=PRESELECT
+  *output, history
+  *Step, name=Step-1
+  *Step, name=Step-1
+  *static
+  *boundary
+  *output, field, variable=PRESELECT
+  *output, history
+  *elementoutput, elset=ASSEMBLY__PICKEDSET6
+  *elprint
+  *endstep
+  *boundary
+
+ ***WARNING: DEGREE OF FREEDOM 6 IS NOT ACTIVE IN THIS MODEL AND CAN NOT BE 
+             RESTRAINED
+  *boundary
+  *boundary
+  *Step, name=Step-1
+  *static
+  *boundary
+  *output, field, variable=PRESELECT
+  *output, history
+  *nodeoutput, nset=ASSEMBLY__PICKEDSET6
+  *nodeoutput, nset=ASSEMBLY__PICKEDSET7
+  *nodeprint
+  *endstep
+
+
+
+                            P R O B L E M   S I Z E
+
+
+          NUMBER OF ELEMENTS IS                                     3
+          NUMBER OF NODES IS                                        8
+          NUMBER OF NODES DEFINED BY THE USER                       8
+          TOTAL NUMBER OF VARIABLES IN THE MODEL                   16
+          (DEGREES OF FREEDOM PLUS MAX NO. OF ANY LAGRANGE MULTIPLIER
+           VARIABLES. INCLUDE *PRINT,SOLVE=YES TO GET THE ACTUAL NUMBER.)
+
+
+
+                              END OF USER INPUT PROCESSING
+
+
+
+     JOB TIME SUMMARY
+       USER TIME (SEC)      =  9.00000E-02
+       SYSTEM TIME (SEC)    =  1.00000E-02
+       TOTAL CPU TIME (SEC) =  0.10000    
+       WALLCLOCK TIME (SEC) =          0
+1
+
+   Abaqus 6.11-1                                  Date 28-Mar-2015   Time 12:49:06
+   For use by Team AWXS under license from Dassault Systemes or its subsidiary.
+
+                                                                                               STEP    1  INCREMENT    1
+                                                                                          TIME COMPLETED IN THIS STEP   0.00    
+
+
+                        S T E P       1     S T A T I C   A N A L Y S I S
+
+
+                                                                                          
+
+     AUTOMATIC TIME CONTROL WITH -
+          A SUGGESTED INITIAL TIME INCREMENT OF                1.000E-02
+          AND A TOTAL TIME PERIOD OF                            1.00    
+          THE MINIMUM TIME INCREMENT ALLOWED IS                1.000E-06
+          THE MAXIMUM TIME INCREMENT ALLOWED IS                0.100    
+
+     LINEAR EQUATION SOLVER TYPE         DIRECT SPARSE
+  
+                   M E M O R Y   E S T I M A T E
+  
+ PROCESS      FLOATING PT       MINIMUM MEMORY        MEMORY TO
+              OPERATIONS           REQUIRED          MINIMIZE I/O
+             PER ITERATION         (MBYTES)           (MBYTES)
+  
+     1          8.24E+02               17                 24
+  
+ NOTE:
+      (1) SINCE ABAQUS DOES NOT PRE-ALLOCATE MEMORY AND ONLY ALLOCATES MEMORY AS NEEDED DURING THE ANALYSIS,
+          THE MEMORY REQUIREMENT PRINTED HERE CAN ONLY BE VIEWED AS A GENERAL GUIDELINE BASED ON THE BEST
+          KNOWLEDGE AVAILABLE AT THE BEGINNING OF A STEP BEFORE THE SOLUTION PROCESS HAS BEGUN.
+      (2) THE ESTIMATE IS NORMALLY UPDATED AT THE BEGINNING OF EVERY STEP. IT IS THE MAXIMUM VALUE OF THE
+          ESTIMATE FROM THE CURRENT STEP TO THE LAST STEP OF THE ANALYSIS, WITH UNSYMMETRIC SOLUTION TAKEN
+          INTO ACCOUNT IF APPLICABLE. 
+      (3) SINCE THE ESTIMATE IS BASED ON THE ACTIVE DEGREES OF FREEDOM IN THE FIRST ITERATION OF THE 
+          CURRENT STEP, THE MEMORY ESTIMATE MIGHT BE SIGNIFICANTLY DIFFERENT THAN ACTUAL USAGE FOR 
+          PROBLEMS WITH SUBSTANTIAL CHANGES IN ACTIVE DEGREES OF FREEDOM BETWEEN STEPS (OR EVEN WITHIN
+          THE SAME STEP). EXAMPLES ARE: PROBLEMS WITH SIGNIFICANT CONTACT CHANGES, PROBLEMS WITH MODEL
+          CHANGE, PROBLEMS WITH BOTH STATIC STEP AND STEADY STATE DYNAMIC PROCEDURES WHERE ACOUSTIC 
+          ELEMENTS WILL ONLY BE ACTIVATED IN THE STEADY STATE DYNAMIC STEPS.
+      (4) FOR MULTI-PROCESS EXECUTION, THE ESTIMATED VALUE OF FLOATING POINT OPERATIONS FOR EACH PROCESS
+          IS BASED ON AN INITIAL SCHEDULING OF OPERATIONS AND MIGHT NOT REFLECT THE ACTUAL FLOATING 
+          POINT OPERATIONS COMPLETED ON EACH PROCESS. OPERATIONS ARE DYNAMICALLY BALANCED DURING EXECUTION, 
+          SO THE ACTUAL BALANCE OF OPERATIONS BETWEEN PROCESSES IS EXPECTED TO BE BETTER THAN THE ESTIMATE
+          PRINTED HERE.
+      (5) THE UPPER LIMIT OF MEMORY THAT CAN BE ALLOCATED BY ABAQUS WILL IN GENERAL DEPEND ON THE VALUE OF
+          THE "MEMORY" PARAMETER AND THE AMOUNT OF PHYSICAL MEMORY AVAILABLE ON THE MACHINE. PLEASE SEE
+          THE "ABAQUS ANALYSIS USER'S MANUAL" FOR MORE DETAILS. THE ACTUAL USAGE OF MEMORY AND OF DISK
+          SPACE FOR SCRATCH DATA WILL DEPEND ON THIS UPPER LIMIT AS WELL AS THE MEMORY REQUIRED TO MINIMIZE
+          I/O. IF THE MEMORY UPPER LIMIT IS GREATER THAN THE MEMORY REQUIRED TO MINIMIZE I/O, THEN THE ACTUAL
+          MEMORY USAGE WILL BE CLOSE TO THE ESTIMATED "MEMORY TO MINIMIZE I/O" VALUE, AND THE SCRATCH DISK
+          USAGE WILL BE CLOSE-TO-ZERO; OTHERWISE, THE ACTUAL MEMORY USED WILL BE CLOSE TO THE PREVIOUSLY
+          MENTIONED MEMORY LIMIT, AND THE SCRATCH DISK USAGE WILL BE ROUGHLY PROPORTIONAL TO THE DIFFERENCE
+          BETWEEN THE ESTIMATED "MEMORY TO MINIMIZE I/O" AND THE MEMORY UPPER LIMIT. HOWEVER ACCURATE
+          ESTIMATE OF THE SCRATCH DISK SPACE IS NOT POSSIBLE.
+      (6) USING "*RESTART, WRITE" CAN GENERATE A LARGE AMOUNT OF DATA WRITTEN IN THE WORK DIRECTORY.
+
+
+          THE ANALYSIS HAS BEEN COMPLETED
+
+
+
+                              ANALYSIS COMPLETE
+                              WITH     3 WARNING MESSAGES ON THE DAT FILE
+
+
+
+     JOB TIME SUMMARY
+       USER TIME (SEC)      =  0.34000    
+       SYSTEM TIME (SEC)    =  5.00000E-02
+       TOTAL CPU TIME (SEC) =  0.39000    
+       WALLCLOCK TIME (SEC) =          0
