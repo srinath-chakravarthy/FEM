@@ -43,9 +43,9 @@
 	  *Item Isotropic Linear Elastic Material 
 	    - [ ] - Anisotropic Linear Elastic Material
 	    - [ ] - Small Strain kinematic and Isotropic J2 Plasticity 
-	    - [ ] - b) Small strain incremental viscoplasticity
-	    - [ ] - c) Small strain incremental non-linear elasticity
-	    - [ ] - d) Stress-Gradient Plasticity (non-local ---> averaging)
+	    - [ ] - Small strain incremental viscoplasticity
+	    - [ ] - Small strain incremental non-linear elasticity
+	    - [ ] - Stress-Gradient Plasticity (non-local ---> averaging)
   * Solvers 
 	1. Linear Solver ---
 	    Variety of solvers are available 
