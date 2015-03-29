@@ -1,9 +1,15 @@
 module global
 
+#define ALP_PC
+
   use local
   use seplaw
   implicit none
+#if defined ALP_PC
+#include <finclude/petscdef.h>
+#else
 #include <petsc-finclude/petscdef.h>
+#endif
   ! Global constants
   integer, parameter :: BC_PRESENT=0
   real(8), parameter :: PENALTY_PARAM=1.0e30
@@ -86,7 +92,11 @@ contains
   ! Calculate Jacobian for SNES
   subroutine CalcJacobian(Solver, du, Jacobian, PCon, args, ierr) 
     implicit none
+#if defined ALP_PC
+#include <finclude/petsc.h90>
+#else
 #include <petsc-finclude/petsc.h90>
+#endif
     ! Input
     SNES :: Solver
     Vec :: du
@@ -180,7 +190,11 @@ contains
   ! Resets nonlinears stiffnesses to elastic values
   subroutine ResetToElastic(Local_Stiff, l_nonlin_ec, nonlin_els, dst)
     implicit none
+#if defined ALP_PC
+#include <finclude/petsc.h90>
+#else
 #include <petsc-finclude/petsc.h90>
+#endif
     real(8), intent(in) :: Local_Stiff(0:nlnds*pdim-1, 0:nlnds*pdim-1)
     Mat, intent(out) :: dst
     integer, intent(in) :: l_nonlin_ec
@@ -217,7 +231,11 @@ contains
   ! Calculate Residual for SNES
   subroutine CalcResidual(Solver, du, Residual, args, ierr)
     implicit none
+#if defined ALP_PC
+#include <finclude/petsc.h90>
+#else
 #include <petsc-finclude/petsc.h90>
+#endif
     SNES :: Solver
     Vec :: du, Residual
     integer :: args(*)
@@ -305,7 +323,6 @@ contains
           end do
           call ApplyNodalForce(Vec_F, nl2g(local_elements(elNo)%nodes(node)), added_values, .true.)
 !!$          write(*,'(A6,3I3,10E12.5)') 'VECVEC', node, nl2g(node), dof, urel, vrel, force_coh, added_values(dof), u(2*(node-1) + 1), u(2*(node-1)+2)
-
         end do
       end do
     end do
@@ -359,7 +376,11 @@ contains
 !!$ ! Apply displacement bc's to correct row,column of stiffness matrix
   subroutine UpdateKMatBcs(Matrix, node,bc_presence,vvec)
     implicit none
+#if defined ALP_PC
+#include <finclude/petsc.h90>
+#else
 #include <petsc-finclude/petsc.h90>
+#endif
     Mat :: Matrix
     integer :: node, i,j, bc_presence(pdim+1)
     real(8) :: vvec(:)
@@ -375,7 +396,11 @@ contains
   ! Apply nodal force
   subroutine ApplyNodalForce_All(Vec_F, node,vvec,iadd)
     implicit none
+#if defined ALP_PC
+#include <finclude/petsc.h90>
+#else
 #include <petsc-finclude/petsc.h90>
+#endif
     Vec, intent(out) :: Vec_F
     integer :: node,i,j
     real(8) :: vvec(:)
@@ -393,7 +418,11 @@ contains
   ! Apply BC's nodal force
   subroutine ApplyNodalForce_BC(Vec_F, node, bcs, vvec)
     implicit none
+#if defined ALP_PC
+#include <finclude/petsc.h90>
+#else
 #include <petsc-finclude/petsc.h90>
+#endif
     Vec, intent(out) :: Vec_F
     integer :: node,bcs(pdim),i,j
     real(8) :: vvec(:)
@@ -428,7 +457,11 @@ contains
   ! Permit not used yet
   subroutine FormRHS(t_init, dt)
     implicit none
+#if defined ALP_PC
+#include <finclude/petsc.h90>
+#else
 #include <petsc-finclude/petsc.h90>
+#endif
     real(8), intent(in) :: t_init, dt
     real(8) :: t_end, applied_interval
     integer :: i,j
@@ -488,7 +521,7 @@ contains
       vvec = 0.0
       node=bcnode(i, 1)
       do j=1,pdim
-        if(bcnode(i,j+1)==0) vvec(j)= PENALTY_PARAM * bcval(i,j) * dt
+        if(bcnode(i,j+1)==0) vvec(j)= PENALTY_PARAM * bcval(i,j) * dt / t
       end do
       call ApplyNodalForce(Vec_F, node,bcnode(i,2:pdim+1),vvec)
     end do
@@ -588,7 +621,11 @@ contains
   ! Scatter given U and get all local values
   subroutine GetVec_U(Vec_U, u)
     implicit none
+#if defined ALP_PC
+#include <finclude/petsc.h90>
+#else
 #include <petsc-finclude/petsc.h90>
+#endif
     Vec :: Vec_U
     real(8) :: u(nlnds * pdim)
     real(8), pointer :: pntr(:)
@@ -602,8 +639,13 @@ contains
   ! Write results in ASCII VTK (legacy) format
   subroutine WriteOutput
     implicit none
+#if defined ALP_PC
+#include <finclude/petscmat.h90>
+#include <finclude/petscsys.h>
+#else
 #include <petsc-finclude/petscmat.h90>
 #include <petsc-finclude/petscsys.h>
+#endif
     character(64) :: name,fmt
     character(32) :: buffer
     integer,save :: k=0

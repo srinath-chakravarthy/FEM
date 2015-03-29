@@ -3,12 +3,18 @@
 ! ------ copied from defmod google code ---------
 ! -----------------------------------------
 
+#define ALP_PC
+
 program main
 
   use global
   use io
   implicit none
+#if defined ALP_PC
+#include <finclude/petsc.h90>
+#else
 #include <petsc-finclude/petsc.h90>
+#endif
 #define destroy(x) if(allocated(x)) deallocate(x)
   character(256) :: input_file, dummy, buffer
   integer :: i,j,j1,j2,n, nodal_bw,ef_eldof, aggregatenode
@@ -462,7 +468,11 @@ contains
   ! Setup solver
   subroutine SetupKSPSolver(Krylov)
     implicit none
-#include<petsc-finclude/petsc.h90>
+#if defined ALP_PC
+#include <finclude/petsc.h90>
+#else
+#include <petsc-finclude/petsc.h90>
+#endif
     KSP :: Krylov
     
        call KSPSetOperators(Krylov,Mat_K,Mat_K,ierr)

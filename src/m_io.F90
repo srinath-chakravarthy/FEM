@@ -1,3 +1,5 @@
+#define ALP_PC
+
 module io
   use elems
   implicit none 
@@ -6,7 +8,11 @@ module io
   
   subroutine broadcastElement(rank, broadcaster, el)
     implicit none
+#if defined ALP_PC
+#include <finclude/petsc.h90>
+#else
 #include <petsc-finclude/petsc.h90>
+#endif
 #define destroy(x) if(allocated(x)) deallocate(x)
     ! Input
     integer, intent(in) :: rank, broadcaster
