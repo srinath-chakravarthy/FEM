@@ -1,5 +1,5 @@
 # FEM
-## Parallel FEM for linear and non-linear small deformation static problems using PETSC 
+## Parallel FEM for linear and non-linear small deformation static problems using PETSC in Fortran 
 ### PETSC --- Parallel Extensible Toolkit for Scientific Computation (http://www.mcs.anl.gov/petsc/)
   * Requirements
 	1. Requires PETSC installation with MUMPS, METIS and PARMETIS
