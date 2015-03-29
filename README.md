@@ -5,7 +5,7 @@
 	1. Requires PETSC installation with MUMPS, METIS and PARMETIS
   * Input Parameters
 	1. Mesh input file along with Boundary Conditions need to be given 
-	  === Description of Mesh file
+	- [ ] - Description of Mesh file
 	- [ ] - Read Comment lines 
 	- [ ] - Read specific command lines
 	- [ ] - Give Element Specific names 2DQPSLF--> 2D--Quad--Plane Strain--Linear--Full Integration
@@ -57,8 +57,8 @@
 	    - [ ] - Give user access to Solver methods
   * Solution Contorls
 	1. Incremental Solution from time t_init to t_final with prescribed dt
-	  TODO --- Since all problems are static, normalize total time to 1 and dt is a fraction of 1
-	  TODO --- Variable dt for non-linear problems
+	  - [ ] - Since all problems are static, normalize total time to 1 and dt is a fraction of 1
+	  - [ ] - Variable dt for non-linear problems
 	2. Direct Solution without incrementation
 Finite Element Implementation
 
