@@ -23,7 +23,7 @@
 	  * 2D Elements 
 	    * Item Plane strain 3-Noded Triangular Isoparametric elements with Linear Interpolation 
 	    * Item Plane strain 4-Noded Quadilateral Isoparametric elements with Linear Interpolation
-	        *Item Full Integration currently 
+	        * Item Full Integration currently 
 	    - [ ] - Plane Stress and Axisymmetric
 	    - [ ] - Reduced Integration
 	    - [ ] - 6 Noded Triangle and 8 noded Serendipity Quadilateral
