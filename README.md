@@ -14,30 +14,30 @@
 	vtk files from each processor numbered by rank
 	Read using Paraview
 	 1. Displacement Vectors at each nodal point
-	 - [ ] - *Item  Output stress at integration points
-	 - [ ] - *Item  Output strain at integration points
-	 - [ ] - *Item  Output custom quantities at integration points
+	 - [ ] - Output stress at integration points
+	 - [ ] - Output strain at integration points
+	 - [ ] - Output custom quantities at integration points
 	 2. Stress Tensor, averaged at each node, represented using Scalars (1..6)
   * Implemetation
 	1. Elements
 	  * 2D Elements 
-	    *Item Plane strain 3-Noded Triangular Isoparametric elements with Linear Interpolation 
-	    *Item Plane strain 4-Noded Quadilateral Isoparametric elements with Linear Interpolation
+	    * Item Plane strain 3-Noded Triangular Isoparametric elements with Linear Interpolation 
+	    * Item Plane strain 4-Noded Quadilateral Isoparametric elements with Linear Interpolation
 	        *Item Full Integration currently 
 	    - [ ] - Plane Stress and Axisymmetric
 	    - [ ] - Reduced Integration
 	    - [ ] - 6 Noded Triangle and 8 noded Serendipity Quadilateral
 	    - [ ] - Reduced integration
 	  * 3D Elements
-	    a) 3D 4-noded Tetrahedral  Isoparametric Elements with Linear Interpolation
-	    TODO ---- Validation
-	    b) 3D 8--Noded Hexahedral Isoparametric Elements with Linear Interpolation
-	    TODO --- Validation
-	      (i) Full Integration currently 
-	      TODO ---- (ii) Reduced Integration
+	    * Item 3D 4-noded Tetrahedral  Isoparametric Elements with Linear Interpolation
+	    - [ ] - Validation
+	    * Item  3D 8--Noded Hexahedral Isoparametric Elements with Linear Interpolation
+	    - [ ] - Validation
+	      * Item  Full Integration currently 
+	      - [ ] - Reduced Integration
 	  * Surface Elements
-	    *Item 2D --- Cohesive Elements --- Representing a line at the midplane between 2 surfaces
-	         *Item Xu-Needleman Cohesive Traction Separation Law
+	    * Item 2D --- Cohesive Elements --- Representing a line at the midplane between 2 surfaces
+	         * Item Xu-Needleman Cohesive Traction Separation Law
 	    - [ ] - Other Traction Separtion laws
 	2. Materials
 	  *Item Isotropic Linear Elastic Material 
@@ -52,8 +52,7 @@
 	    Currently MUMPS Linear Direct solver is implemented
 	    - [ ] - Give user access to different solvers
 	2. Non-linear Solver 
-	    Uses SNES (petsc) to do solution
-	      currently uses default MUMPS to perform solution
+	    Uses SNES (petsc) to do solution currently uses default MUMPS to perform solution
 	    - [ ] - Give user access to Solver methods
   * Solution Contorls
 	1. Incremental Solution from time t_init to t_final with prescribed dt
