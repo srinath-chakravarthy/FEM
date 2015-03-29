@@ -13,18 +13,18 @@
   * Implemetation
 	1. Elements
 	  * 2D Elements 
-	    * Item Plane strain 3-Noded Triangular Isoparametric elements with Linear Interpolation 
-	    * Item Plane strain 4-Noded Quadilateral Isoparametric elements with Linear Interpolation
-	        * Item Full Integration currently 
+	    * Plane strain 3-Noded Triangular Isoparametric elements with Linear Interpolation 
+	    * Plane strain 4-Noded Quadilateral Isoparametric elements with Linear Interpolation
+	        * Full Integration currently 
 	  * 3D Elements
-	    * Item 3D 4-noded Tetrahedral  Isoparametric Elements with Linear Interpolation
-	    * Item  3D 8--Noded Hexahedral Isoparametric Elements with Linear Interpolation
-	      * Item  Full Integration currently 
+	    * 3D 4-noded Tetrahedral  Isoparametric Elements with Linear Interpolation
+	    * 3D 8--Noded Hexahedral Isoparametric Elements with Linear Interpolation
+	      * Full Integration currently 
 	  * Surface Elements
-	    * Item 2D --- Cohesive Elements --- Representing a line at the midplane between 2 surfaces
-	         * Item Xu-Needleman Cohesive Traction Separation Law
+	    * 2D --- Cohesive Elements --- Representing a line at the midplane between 2 surfaces
+	         * Xu-Needleman Cohesive Traction Separation Law
 	2. Materials
-	  *Item Isotropic Linear Elastic Material 	
+	  * Isotropic Linear Elastic Material 	
   * Solvers 
 	1. Linear Solver ---
 	    Variety of solvers are available 
