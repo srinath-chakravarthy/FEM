@@ -31,8 +31,8 @@ program main
 
   
   pdim = 2
-  x_nels = 3
-  y_nels = 3
+  x_nels = 10
+  y_nels = 1
   
   if(iargc() == 2) then
     call getarg(1, buffer)
@@ -53,7 +53,7 @@ program main
   ntrcts = 0 ! Not supported yet
   nbcs = 2
   
-  total_time = 0.1
+  total_time = 0.01
   dt = 0.01
   obsolete_output_freq = 1
   writeType = 1

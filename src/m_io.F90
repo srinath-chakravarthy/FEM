@@ -1,5 +1,3 @@
-#define ALP_PC
-
 module io
   use elems
   implicit none 

@@ -1,4 +1,4 @@
-implicit 2 10  ! solver_type  dimension  guess_for_max_number_of_nodes_a_node_contributes_to (b/w 0-100; See README)
+implicit 2 200  ! solver_type  dimension  guess_for_max_number_of_nodes_a_node_contributes_to (b/w 0-100; See README)
 
 8 12 2 0 2 0 3    ! num_elements  num_nodes  num_materials  num_constraint_eqns  num_force_bcs  num_traction_bcs  num_sides_with_abcs
 

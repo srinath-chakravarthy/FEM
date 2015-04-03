@@ -1,7 +1,4 @@
 module global
-
-#define ALP_PC
-
   use local
   use seplaw
   implicit none

@@ -3,8 +3,6 @@
 ! ------ copied from defmod google code ---------
 ! -----------------------------------------
 
-#define ALP_PC
-
 program main
 
   use global
