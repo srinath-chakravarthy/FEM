@@ -1,7 +1,5 @@
 all:
 	cd src; $(MAKE) all
-all-a:
-	cd src; $(MAKE) all-a
 clean:
 	cd src; $(MAKE) clean
 test:
