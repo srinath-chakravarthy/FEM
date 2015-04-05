@@ -41,7 +41,7 @@ program main
   call Initialize(ipoints, weights)
   if(rank == 0) call ReadElementsCoords(10, global_elements, aggregatenode, nonlinear)
   call PartitionBroadcast(rank, 0, global_elements, aggregatenode, epart)
-  call DistributeElements(rank, 0, nels, epart, global_elements, local_elements)
+  call DistributeElements(rank, 0, nels, epart, global_elements, local_elements, nonlinear)
   if(rank == 0) deallocate(global_elements)
   nels=size(local_elements)
   call SetNonlinEls(nels, local_elements, l_nonlin_ec, nonlin_els)

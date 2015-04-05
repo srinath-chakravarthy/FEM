@@ -196,7 +196,7 @@ module io
   
   end subroutine RecvElement
 
-  subroutine DistributeElements(rank, distributor, nels, epart, global_elements, local_elements)
+  subroutine DistributeElements(rank, distributor, nels, epart, global_elements, local_elements, nonlinear)
     implicit none
 #if defined ALP_PC
 #include <finclude/petsc.h90>
@@ -206,8 +206,11 @@ module io
     integer, intent(in) :: rank, distributor, nels, epart(:)
     type(element), intent(in) :: global_elements(:)
     type(element), allocatable, intent(out) :: local_elements(:)
+    logical :: nonlinear
 
     integer :: i, j
+
+    call MPI_Bcast(nonlinear, 1, MPI_LOGICAL, 0, MPI_COMM_WORLD, ierr)
 
     destroy(local_elements)
     j = 0
@@ -215,7 +218,6 @@ module io
       if(epart(i)==rank) j = j + 1
     end do
     allocate(local_elements(j))
-
     j = 1
     do i = 1, nels
 
