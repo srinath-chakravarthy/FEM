@@ -1,3 +1,5 @@
+#define ALP_PC
+
 module local
 
   use elems

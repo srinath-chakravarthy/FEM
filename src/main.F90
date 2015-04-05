@@ -3,6 +3,8 @@
 ! ------ copied from defmod google code ---------
 ! -----------------------------------------
 
+#define ALP_PC
+
 program main
 
   use global
@@ -15,9 +17,11 @@ program main
 #endif
 #define destroy(x) if(allocated(x)) deallocate(x)
   character(256) :: input_file, dummy, buffer
-  integer :: i,j,j1,j2,n, nodal_bw,ef_eldof, aggregatenode
+  integer :: i,j,j1,j2,n, ef_eldof, aggregatenode
   integer,pointer :: null_i=>null(), el_nodes(:)
   real(8),pointer :: null_r=>null()
+
+  type(element) :: dummy_el
   
   call PetscInitialize(Petsc_Null_Character,ierr)
 
@@ -29,116 +33,20 @@ program main
   if (n==0) go to 9
 
   ! Read input file parameters
-  open(10,file=input_file,status='old')
+  if(rank == 0) open(10,file=input_file,status='old')
   call PrintMsg("Reading input ...")
-  call ReadParameters
-
-  ! Set element specific constants
+  
+  if(rank == 0) call ReadParameters(10) !; if (stype /= "implicit") go to 9
+  call BroadCastParameters(rank, 0)
   call Initialize(ipoints, weights)
-  
-  ! Form global node array
-  ! TODO: Handle IO on rank==0
-  allocate(global_elements(nels))
-  aggregatenode=0;maxnodesperel=0
-  l_nonlin_ec=0;l_nonlin_nc=0
-  do i=1,nels  
-    ! aggregatenode accrues total number of nodes per element for
-    ! all elements
-    read(10, *)global_elements(i)%eltype
-    if(global_elements(i)%eltype == "coh") nonlinear = .true.
-    backspace(10)
-    global_elements(i)%nodecount = getNodeCount(global_elements(i)%eltype)
-    maxnodesperel=max(global_elements(i)%nodecount,maxnodesperel)
-    allocate(global_elements(i)%nodes(global_elements(i)%nodecount))
-    allocate(global_elements(i)%ecoords(global_elements(i)%nodecount, pdim))
-    aggregatenode= aggregatenode+(global_elements(i)%nodecount)
-    read(10, *)dummy, global_elements(i)%nodes, global_elements(i)%mat
-  end do 
-  allocate(coords(nnds, pdim))
-  do i=1,nnds
-    read(10, *)coords(i, :)
-  end do
-  do i=1,nels
-    global_elements(i)%ecoords=coords(global_elements(i)%nodes, :)
-  end do
-  deallocate(coords)
+  if(rank == 0) call ReadElementsCoords(10, global_elements, aggregatenode, nonlinear)
+  call PartitionBroadcast(rank, 0, global_elements, aggregatenode, epart)
+  call DistributeElements(rank, 0, nels, epart, global_elements, local_elements)
+  if(rank == 0) deallocate(global_elements)
+  nels=size(local_elements)
+  call SetNonlinEls(nels, local_elements, l_nonlin_ec, nonlin_els)
 
-  ! Partition mesh using METIS, create mappings and read on-rank mesh data
-  allocate(npart(nnds),epart(nels)); epart=0; npart=0
-  if (nprcs>1) then
-     call PrintMsg("Partitioning mesh ...")
-     if (rank==0) then
-        allocate(nodes(1,aggregatenode),work(nels+1)); work(1)=0
-        ! j: starting index of current element's nodes
-        ! n: end index of current element's nodes
-        n=0
-        do i=1,nels
-           j=n+1; n=n+global_elements(i)%nodecount
-           nodes(1,j:n)=global_elements(i)%nodes
-           work(i+1)=n
-        end do
-        nodes=nodes-1
-        
-        
-        call METIS_PartMeshNodal(nels,nnds,work,nodes(1,:),null_i,null_i,nprcs,     &
-           null_r,null_i,n,epart,npart)
-        ! Nodal partitioning is not used        
-        npart=0
-        deallocate(nodes,work)
-     end if
-!!$  !  Broadcast METIS partition to all processors 
-     call MPI_Bcast(epart,nels,MPI_Integer,0,MPI_Comm_World,ierr)
-!!$  !  Now all processors contain the epart and npart partitioning information	
-	
-  end if
-  
-  
-  call PrintMsg("Reading mesh data ...")
-!!$  ! --- For each processor emap is of size nels and nnds
-!!$  ! Allocate temporary storage for emap and nmap based on global number of nodes and elements 
-!!$  ! -- These arrays change, so description follows
-  allocate(emap(nels),nmap(nnds)); emap=0; nmap=0
-
-!!$  ! Create original to local element mappings and read on-rank element data
-!!$  ! --- Once again epart contains the global array in each processor 
-!!$  ! --- It can be modified locally 
-!!$  ! --- epart is now set = 0 if the element does not belong to it
-!!$  ! --- emap is the local number of that element 
-!!$  !      Starts at 1 and is numbered sequentially
-  j=1
-  do i=1,nels
-     if (epart(i)==rank) then
-        epart(i)=1; emap(i)=j; j=j+1
-     else
-        epart(i)=0
-     end if
-  end do
-!!$  ! --- n is the local number of elements in the processor 
-  n=j-1; allocate(local_elements(n))
-  call PrintMsg("Original Nodes")
-  
-  j=1
-  do i=1,nels
-     if (epart(i)==1) then
-        local_elements(j)=global_elements(i)
-        if(local_elements(j)%eltype=="coh") l_nonlin_ec = l_nonlin_ec + 1
-        j=j+1
-     end if
-  end do
-  nels=n
-  allocate(nonlin_els(l_nonlin_ec))
-  ! nels set
-  ! l_nonlin_ec set
-  
-  ! Setting non_lin_els array
-  j = 1
-  do i = 1, nels
-    if(local_elements(i)%eltype=="coh") then
-      nonlin_els(j)=i
-      j=j+1
-    end if 
-  end do
-
+  allocate(npart(nnds))
   allocate(work(nnds))
   do i=1,nels
      do j=1,local_elements(i)%nodecount
@@ -163,32 +71,9 @@ program main
        local_elements(i)%nodes(j)=work(local_elements(i)%nodes(j))
     end do
   end do
-  
   deallocate(npart)
-  allocate(npart(nlnds))
-  npart = 0
-  ! Marking local nonlinear nodes
-  do i = 1, l_nonlin_ec
-    npart(local_elements(nonlin_els(i))%nodes) = 1
-  end do
-  do i = 1, nlnds
-    l_nonlin_nc=l_nonlin_nc+npart(i)  
-  end do  
-  allocate(nonlin_nds(l_nonlin_nc))
-  j=1
-  do i = 1, nlnds
-    if(npart(i)==1) then
-      nonlin_nds(j)=i
-      j=j+1
-    end if  
-  end do
-  
-  allocate(coords(nlnds, pdim))
-  do i = 1, nels
-    do j = 1, local_elements(i)%nodecount
-      coords(local_elements(i)%nodes(j), :) = local_elements(i)%ecoords(j, :)
-    end do
-  end do
+
+  call SetCoords(nels, local_elements, coords)
   
   allocate(nl2g(nlnds),indxmap((pdim)*nlnds,2))
   j=1
@@ -209,34 +94,33 @@ program main
         indxmap((pdim)*i-j+1,2)=(pdim)*nl2g(i)-j
      end do
   end do
-  deallocate(work, epart, npart)
+  deallocate(work)
   
-  ! Read material data assuming nels >> nmts, i.e., all ranks store all data
-  allocate(mat(nmts,5))
-  do i=1,nmts
-     read(10,*)mat(i,:)
-  end do
+  call ReadDistMaterials(10, 0, nmts, mat)
   
-  ! Allocate arrays to store loading history
-  allocate(cval(nceqs,3),fnode(nfrcs),fval(nfrcs,pdim+2),telsd(ntrcs,2),      &
-     tval(ntrcs,pdim+2)); cval=f0; fval=f0; tval=f0
-!!$ ! Allocate bc's 
-  allocate(bcnode(nbcs, 1 + pdim), bcval(nbcs,pdim))
-  tstep=0
-  do i = 1, nbcs
-     read(10,*) bcnode(i, :), bcval(i,:)
-  end do
-  do i=1,nfrcs
-     read(10,*)fnode(i),fval(i,:)
-     fval(i, pdim + 1) = min(fval(i, pdim + 1), t)
-     fval(i, pdim + 2) = min(fval(i, pdim + 2), t)
-  end do
-  do i=1,ntrcs
-     read(10,*)telsd(i,:),tval(i,:)
-  end do
-  telsd(:,1)=emap(telsd(:,1)) ! Remap nodes/els
-  close(10)
-  deallocate(nmap,emap)
+  call ReadDistBcs(10, nbcs, nprcs, rank, 0, bcnode, bcval)
+  call ReadDistForces(10, nfrcs, nprcs, rank, 0, fnode, fval)
+  deallocate(epart)
+  if(rank == 0) close(10)
+
+! TODO: nceqs
+!  allocate(cval(nceqs,3)); cval=f0
+! TODO: tractions
+! allocate(telsd(ntrcs,2),tval(ntrcs,pdim+2)); tval=f0
+!  allocate(emap(nels)); emap=0
+!  j=1
+!  do i=1,nels
+!     if (epart(i)==rank) then
+!        epart(i)=1; emap(i)=j; j=j+1
+!     else
+!        epart(i)=0
+!     end if
+!  end do
+
+!  do i=1,ntrcs
+!     read(10,*)telsd(i,:),tval(i,:)
+!  end do
+!  telsd(:,1)=emap(telsd(:,1)) ! Remap nodes/els
   
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!! INPUT END !!!!!!!!!!!!!!!!!!!
 
@@ -431,11 +315,13 @@ program main
   ! call SNESDestroy(Solver, ierr)
   
   deallocate(stress)
-  deallocate(global_elements, local_elements, count_node, stress_node)
+  deallocate(local_elements, count_node, stress_node)
   deallocate(aggregate_u, aggregate_stress)
-  deallocate(coords,mat, vvec,indxmap,uu,cval,fnode,fval,telsd,tval,nl2g)
+  deallocate(coords,mat, vvec,indxmap,uu,fnode,fval,nl2g)
+  destroy(cval)
+  destroy(tval)
+  destroy(telsd)
   deallocate(nonlin_els)
-  deallocate(nonlin_nds)
   do i = 1, elTypeCount
     destroy(ipoints(i)%array)
     destroy(weights(i)%array)
@@ -449,19 +335,6 @@ program main
 9 call PetscFinalize(ierr)
 
 contains
-
-  ! Read simulation parameters
-  subroutine ReadParameters
-    implicit none
-    read(10,*)stype,pdim,nodal_bw
-    read(10,*)nels,nnds,nmts,nceqs,nfrcs,ntrcs,nbcs
-    read(10,*)t,dt,frq,dsp
-    if (stype /= "implicit") then 
-       ! ---- Need to print an error message and then quit
-       call PetscFinalize(ierr)
-    end if
-    ! --- If initial dt is equal to zero set it to 1
-  end subroutine ReadParameters
 
   ! Setup solver
   subroutine SetupKSPSolver(Krylov)

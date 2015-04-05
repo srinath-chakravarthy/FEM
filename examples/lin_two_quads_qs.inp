@@ -2,7 +2,7 @@ implicit 2 10  ! solver_type  dimension  guess_for_max_number_of_nodes_a_node_co
 
 6 9 2 0 2 0 3    ! num_elements  num_nodes  num_materials  num_constraint_eqns  num_force_bcs  num_traction_bcs  num_sides_with_abcs
 
-0.1 0.1 1 1      ! total_time (secs)  time_step (secs)  output_frequency  displacement_to_be_written_in_the_output_files (total (1) or delta (0))
+0.1 0.1      ! total_time (secs)  time_step (secs)
 
 qua 4 5 8 7 1
 tri 5 9 8 1

@@ -22,6 +22,7 @@ contains
 
   ! Return the pertaining dimension of this element
   function getDim(eltype) result(pdim)
+    implicit none
     character(*) :: eltype
     integer :: pdim
     select case(eltype)
@@ -36,6 +37,7 @@ contains
   ! NOTE: Exhaustive search can be altered into a logn search if
   ! eltypes proliferate
   function getElTypeNo(eltype) result(elTypeNo)
+    implicit none
     character(*) :: eltype
     integer :: elTypeNo, i
     do i = 1, elTypeCount
@@ -47,6 +49,7 @@ contains
   end function getElTypeNo
   
   function getElName(elTypeNo) result(elName)
+    implicit none
     integer :: elTypeNo
     character(4) :: elname
     
@@ -64,6 +67,7 @@ contains
   
   ! Return the element's number of integration points
   function getNip(eltype) result(nip)
+    implicit none
     character(*) :: eltype
     integer :: nip
     
@@ -78,6 +82,7 @@ contains
   
   ! Return the element's vtkid
   function getVtkid(eltype) result(vtkid)
+    implicit none
     character(*) :: eltype
     integer :: vtkid
     

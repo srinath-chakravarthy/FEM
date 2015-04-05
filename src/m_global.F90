@@ -1,3 +1,5 @@
+#define ALP_PC
+
 module global
   use local
   use seplaw
@@ -11,7 +13,7 @@ module global
   integer, parameter :: BC_PRESENT=0
   real(8), parameter :: PENALTY_PARAM=1.0e30
   ! Global variables
-  integer :: nnds,nels,nmts,nceqs,nfrcs,ntrcs,nbcs,frq,dsp,steps,tstep,maxnodesperel
+  integer :: nnds,nels,nmts,nceqs,nfrcs,ntrcs,nbcs,steps,maxnodesperel
   real(8) :: alpha,beta,t,dt,val,scale
   integer,allocatable :: nodes(:, :), work(:)
   real(8),allocatable :: vvec(:),mat(:,:)
@@ -73,12 +75,13 @@ module global
   integer, allocatable :: nonlins(:) ! Local indices of nonlinear elements
   integer :: l_nonlin_ec ! Local nonlinear el count
   integer, allocatable :: nonlin_els(:) ! Indices of linear elements
-  integer, allocatable :: nonlin_nds(:) ! Nonlinear nodes
   integer :: l_nonlin_nc ! Local nonlinear node count
   
   ! Extractions
   real(8), allocatable :: Array_K(:, :) ! Local Mat_K
   
+  ! Bandwidth guess
+  integer :: nodal_bw
   
   interface ApplyNodalForce
     module procedure ApplyNodalForce_All, ApplyNodalForce_BC
@@ -470,7 +473,7 @@ contains
     ! TODO: Modify nceqs for dt
     do i=1,nceqs
        t1=cval(i,2)/dt; t2=cval(i,3)/dt
-       if (tstep>=nint(t1) .and. tstep<=nint(t2)) then
+       if(.true.) then! if (tstep>=nint(t1) .and. tstep<=nint(t2)) then
           j=(pdim)*nnds+i-1
           if (stype/="explicit" .and. rank==0)                                 &
              call VecSetValue(Vec_F,j,cval(i,1),Add_Values,ierr)
@@ -484,7 +487,6 @@ contains
        t2 = fval(i, pdim + 2)
        if (t_end < t1 .or. t_init > t2) cycle
        applied_interval = min(t2, t_end) - max(t1, t_init)
-       ! if (tstep>=nint(t1) .and. tstep<=nint(t2)) then
        node=fnode(i); vvec=fval(i,1:pdim)
        vvec = vvec * applied_interval / (t2 - t1)
        iadd = .false.
@@ -497,11 +499,11 @@ contains
     ! TODO: Modify ntrcs for dt
     do i=1,ntrcs
        t1=tval(i,pdim+1)/dt; t2=tval(i,pdim+2)/dt
-       if (tstep>=nint(t1) .and. tstep<=nint(t2)) then
+       if(.true.) then! if (tstep>=nint(t1) .and. tstep<=nint(t2)) then
           el=telsd(i,1); side=telsd(i,2); vvec=tval(i,1:pdim)
           iadd = .true.
           if (el/=0) call ApplyTraction(el,side,vvec, iadd)
-       end if
+        end if
     end do
   end subroutine FormRHS
 
@@ -648,13 +650,8 @@ contains
     integer,save :: k=0
     integer :: i,j,j1,lnnds,lnels
     real(8),pointer :: field_val(:), stress_val(:, :)
-    if(dsp == 0) then
-      field_val => uu
-      stress_val => stress_node
-    else if (dsp == 1) then
-      field_val => aggregate_u
-      stress_val => aggregate_stress
-    end if
+    field_val => aggregate_u
+    stress_val => aggregate_stress
     write(name,'(I0,A,I0.6,A)')rank,"_output_",k,".vtk"
     open(10,file=adjustl(name),status='replace')
     lnnds=size(coords,1)
