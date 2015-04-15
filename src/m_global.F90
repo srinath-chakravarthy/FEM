@@ -82,6 +82,9 @@ module global
   
   ! Bandwidth guess
   integer :: nodal_bw
+
+  ! Cohesive materials
+  integer :: ncohmats
   
   interface ApplyNodalForce
     module procedure ApplyNodalForce_All, ApplyNodalForce_BC
@@ -437,19 +440,29 @@ contains
   ! Apply traction (EbEAve)
   subroutine ApplyTraction(el,side,vvec,iadd)
     implicit none
-    integer :: el,side,i,snodes(nps)
+    type(element), target :: el
+    integer :: side,i, nps
     integer, pointer :: enodes(:)
     real(8) :: vvec(:),area
     logical :: iadd
     real(8), pointer :: ecoords(:, :)
-    enodes=>local_elements(el)%nodes
-    ecoords=>local_elements(el)%ecoords
-    call EdgeAreaNodes(enodes,ecoords,side,area,snodes)
+    integer, allocatable :: snodes(:)
+
+
+    enodes=>el%nodes
+    ecoords=>el%ecoords
+
+    nps = getNps(el%eltype)
+    allocate(snodes(nps))
+
+    call EdgeAreaNodes(el%eltype, enodes,ecoords,side,area,snodes)
     vvec=vvec*area/dble(nps)
     snodes=nl2g(snodes)
     do i=1,nps
        call ApplyNodalForce(Vec_F, snodes(i),vvec,iadd)
     end do
+
+    deallocate(snodes)
   end subroutine ApplyTraction
 
   ! Form RHS
@@ -468,6 +481,7 @@ contains
     real(8) :: t1,t2
     logical :: iadd
     real(8) :: vvec(pdim)
+    call VecZeroEntries(Vec_F, ierr)
     t_end = t_init + dt
     
     ! TODO: Modify nceqs for dt
@@ -489,22 +503,34 @@ contains
        applied_interval = min(t2, t_end) - max(t1, t_init)
        node=fnode(i); vvec=fval(i,1:pdim)
        vvec = vvec * applied_interval / (t2 - t1)
-       iadd = .false.
+       iadd = .true.
        call ApplyNodalForce(Vec_F, node,vvec,iadd)
+
     end do
+    
+    do i=1,ntrcs
+      t1=tval(i,pdim+1)/dt
+      t2=tval(i,pdim+2)/dt
+
+      if(t_end < t1 .or. t_init > t2) cycle
+      
+      applied_interval = min(t2, t_end) - max(t1, t_init)
+      el=telsd(i,1)
+      side=telsd(i,2)
+      vvec=tval(i,1:pdim) * (applied_interval / (t2 - t1))
+      iadd = .true.
+      iadd = .true.
+      if (el/=0) call ApplyTraction(local_elements(el),side,vvec, iadd)
+    end do
+
+    call VecAssemblyBegin(Vec_F, ierr)
+    call VecAssemblyEnd(Vec_F, ierr)
 
 !!$ ! Apply displacement boundary conditions
     call EnforceBCForce(Vec_F, dt)
-    
-    ! TODO: Modify ntrcs for dt
-    do i=1,ntrcs
-       t1=tval(i,pdim+1)/dt; t2=tval(i,pdim+2)/dt
-       if(.true.) then! if (tstep>=nint(t1) .and. tstep<=nint(t2)) then
-          el=telsd(i,1); side=telsd(i,2); vvec=tval(i,1:pdim)
-          iadd = .true.
-          if (el/=0) call ApplyTraction(el,side,vvec, iadd)
-        end if
-    end do
+
+    call VecAssemblyBegin(Vec_F,ierr)
+    call VecAssemblyEnd(Vec_F,ierr)
   end subroutine FormRHS
 
   ! Override BC's forces onto the Vec_F

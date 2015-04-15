@@ -14,7 +14,7 @@ module io
     integer, intent(in) :: file
 
     read(file,*)stype,pdim,nodal_bw
-    read(file,*)nels,nnds,nmts,nceqs,nfrcs,ntrcs,nbcs
+    read(file,*)nels,nnds,nmts,ncohmats,nceqs,nfrcs,ntrcs,nbcs
     read(file,*)t,dt
     
   end subroutine ReadParameters
@@ -29,7 +29,7 @@ module io
     integer, intent(in) :: rank, broadcaster
 
     ! Constants
-    integer, parameter :: INT_BUFFER_SIZE = 10, REAL_BUFFER_SIZE = 2
+    integer, parameter :: INT_BUFFER_SIZE = 11, REAL_BUFFER_SIZE = 2
 
     ! Buffers
     integer :: int_buffer(INT_BUFFER_SIZE)
@@ -42,7 +42,7 @@ module io
       else
         int_buffer(1) = 1
       end if
-      int_buffer(2:) = (/pdim, nodal_bw, nels, nnds, nmts, nceqs, nfrcs, ntrcs, nbcs/)
+      int_buffer(2:) = (/pdim, nodal_bw, nels, nnds, nmts, nceqs, nfrcs, ntrcs, nbcs, ncohmats/)
       real_buffer = (/t, dt/)
     end if
 
@@ -62,6 +62,7 @@ module io
         nfrcs = int_buffer(8)
         ntrcs = int_buffer(9)
         nbcs = int_buffer(10)
+        ncohmats = int_buffer(11)
         t = real_buffer(1)
         dt = real_buffer(2)
     end if 
@@ -389,4 +390,68 @@ module io
 
     nbcs = localBcCount
   end subroutine ReadDistBcs
+
+  ! epart must be set
+  subroutine ReadDistTractions(file, ntrcs, nprcs, rank, distributor, telsd, tval)
+    implicit none
+#if defined ALP_PC
+#include <finclude/petsc.h90>
+#else
+#include <petsc-finclude/petsc.h90>
+#endif
+    integer, intent(in) :: file, nprcs, rank, distributor
+    integer :: ntrcs
+    integer, allocatable, intent(out) :: telsd(:, :)
+    real(8), allocatable, intent(out) :: tval(:,:)
+    
+    integer :: ierr, i, i2, j
+    integer :: localTractCount
+    integer :: i_buffer(2), tempTelsd(ntrcs, 2)
+    real(8) :: r_buffer(pdim + 2), tempTval(ntrcs, pdim + 2)
+    integer, allocatable :: emap(:)
+
+    destroy(telsd)
+    destroy(tval)
+    localTractCount = 0
+
+    if(rank == distributor) then
+      do i = 1, ntrcs
+      read(file,*)tempTelsd(i, :),tempTval(i,:)
+      end do
+    end if
+
+    call MPI_Bcast(tempTelsd, ntrcs * 2, MPI_INTEGER, distributor, MPI_COMM_WORLD, ierr)
+    call MPI_Bcast(tempTval, ntrcs * (pdim + 2), MPI_REAL8, distributor, MPI_COMM_WORLD, ierr)
+
+    ! Calculate local traction count
+    do i = 1, size(tempTelsd)
+      if(epart(tempTelsd(i, 1)) == rank) localTractCount = localTractCount + 1
+    end do
+
+    allocate(telsd(localTractCount, 2), tval(localTractCount, pdim + 2))
+    
+    j = 1
+    do i = 1, size(tempTelsd)
+      if(epart(tempTelsd(i, 1)) == rank) then
+        telsd(j, :) = tempTelsd(i, :)
+        tval(j, :) = tempTval(i, :)
+        j = j + 1
+      end if  
+    end do
+
+    ! Localize element numbers
+    allocate(emap(size(epart)))
+    emap = 0
+    j = 1
+    do i = 1, size(epart)
+      if(epart(i) == rank) then
+        emap(i) = j
+        j = j + 1
+      end if
+    end do
+    telsd(:, 1) = emap(telsd(:, 1))
+    deallocate(emap)
+
+    ntrcs = localTractCount
+  end subroutine ReadDistTractions
 end module io

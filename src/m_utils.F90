@@ -11,6 +11,11 @@ module utils
     integer :: nodecount, mat
     real(8), allocatable :: ecoords(:, :)
   end type element
+
+  type cohMat
+      integer :: seplaw
+      real(8), allocatable :: props(:)
+  end type cohMat
   
   type array1d
     real(8), allocatable :: array(:)

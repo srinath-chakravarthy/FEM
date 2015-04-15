@@ -100,6 +100,8 @@ program main
   
   call ReadDistBcs(10, nbcs, nprcs, rank, 0, bcnode, bcval)
   call ReadDistForces(10, nfrcs, nprcs, rank, 0, fnode, fval)
+  call ReadDistTractions(10, ntrcs, nprcs, rank, 0, telsd, tval)
+  !print*, telsd, tval
   deallocate(epart)
   if(rank == 0) close(10)
 
@@ -233,9 +235,7 @@ program main
     ! Form RHS
     call PrintMsg("    Forming RHS ...")
     call FormRHS(t_init, dt)
-    call VecAssemblyBegin(Vec_F,ierr)
-    call VecAssemblyEnd(Vec_F,ierr)
-    ! call VecView(Vec_F,PETSC_VIEWER_STDOUT_WORLD,ierr)
+    call VecView(Vec_F,PETSC_VIEWER_STDOUT_WORLD,ierr)
     
     if (stype/="explicit") then
       call PrintMsg("    Solving ...")
@@ -251,7 +251,7 @@ program main
       call VecView(Vec_U,PETSC_VIEWER_STDOUT_WORLD,ierr)
       call GetVec_U(Vec_U, uu); aggregate_u=aggregate_u+uu
      
-      call PrintMsg("    Getting stress ....")
+      call PrintMsg("    Getting stress ...")
       do i = 1, nels
          call RecoverStress(i)
       end do

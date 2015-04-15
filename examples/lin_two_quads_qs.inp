@@ -1,8 +1,8 @@
 implicit 2 10  ! solver_type  dimension  guess_for_max_number_of_nodes_a_node_contributes_to (b/w 0-100; See README)
 
-6 9 2 0 2 0 3    ! num_elements  num_nodes  num_materials  num_constraint_eqns  num_force_bcs  num_traction_bcs  num_sides_with_abcs
+6 9 2 0 0 2 0 3    ! num_elements  num_nodes  num_materials num_nonlin_mats num_constraint_eqns  num_force_bcs  num_traction_bcs  num_sides_with_abcs
 
-0.1 0.1      ! total_time (secs)  time_step (secs)
+0.1 0.1       ! total_time (secs)  time_step (secs)
 
 qua 4 5 8 7 1
 tri 5 9 8 1

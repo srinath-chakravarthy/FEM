@@ -10,6 +10,7 @@ module elems
   integer, parameter :: elTypeCount = 5
   character(4) :: elTypes(elTypeCount) = (/"tri", "qua", "tet", "hex", "coh"/)
   integer :: elNodeCount(elTypeCount) = (/3, 4, 4, 6, 4/)
+  integer :: elNodePerSide(elTypeCount) = (/2, 2, 3, 4, 2/)
   
   ! shapeFuncMem: ShapeFunc Memoization 
   ! shapeFuncMem(typeIndex)%array(nip) -> ShapeFunc(elType, nip)
@@ -19,6 +20,14 @@ module elems
   type(array2d) :: nodalStressInvMem(elTypeCount)
 
 contains
+
+  ! Get node perside
+  function getNps(eltype) result(nps)
+    implicit none
+    character(*) :: eltype
+    integer :: nps
+    nps = elNodePerside(getElTypeNo(eltype))
+  end function getNps
 
   ! Return the pertaining dimension of this element
   function getDim(eltype) result(pdim)
@@ -171,8 +180,9 @@ contains
   end subroutine ElVol
 
   ! Computes edge 'area' and list of nodes 'snodes' in the edge
-  subroutine EdgeAreaNodes(enodes,ecoords,side,area,snodes)
+  subroutine EdgeAreaNodes(eltype, enodes,ecoords,side,area,snodes)
     implicit none
+    character(*), intent(in) :: eltype
     integer :: enodes(:),side,snodes(:)
     real(8) :: area, ecoords(:,:)
     if (eltype=="tri") call EdgeAreaNodesTri(enodes,ecoords,side,area,snodes)
