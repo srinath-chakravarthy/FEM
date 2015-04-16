@@ -68,12 +68,11 @@ module io
     end if 
   end subroutine BroadCastParameters
 
-  subroutine ReadElementsCoords(file, global_elements, aggregatenode, nonlinear)
+  subroutine ReadElementsCoords(file, global_elements, aggregatenode)
     implicit none
     integer, intent(in) :: file
     type(element), allocatable, intent(out) :: global_elements(:)
     integer, intent(out) :: aggregatenode
-    logical, intent(out) :: nonlinear
 
     integer :: i
     character(4) :: dummy
@@ -87,13 +86,12 @@ module io
       ! aggregatenode accrues total number of nodes per element for
       ! all elements
       read(file, *)global_elements(i)%eltype
-      if(global_elements(i)%eltype == "coh") nonlinear = .true.
       backspace(file)
       global_elements(i)%nodecount = getNodeCount(global_elements(i)%eltype)
       allocate(global_elements(i)%nodes(global_elements(i)%nodecount))
       allocate(global_elements(i)%ecoords(global_elements(i)%nodecount, pdim))
       aggregatenode= aggregatenode+(global_elements(i)%nodecount)
-      read(file, *)dummy, global_elements(i)%nodes, global_elements(i)%mat
+      read(file, *)dummy, global_elements(i)%nodes, global_elements(i)%mat, global_elements(i)%nlMat
     end do
 
     allocate(coords(nnds, pdim))
@@ -159,9 +157,10 @@ module io
   integer :: i_buffer(BUFFER_SIZE)
   real(8) :: r_buffer(BUFFER_SIZE, BUFFER_SIZE)
   
-  i_buffer(1:3) = (/getElTypeNo(el%eltype),&
+  i_buffer(1:4) = (/getElTypeNo(el%eltype),&
                     el%nodecount,&
-                    el%mat & 
+                    el%mat, &
+                    el%nlMat & 
                   /)
   call MPI_Send(i_buffer, BUFFER_SIZE, MPI_INT, dst, 0, MPI_COMM_WORLD, ierr)
   i_buffer(1:el%nodecount) = el%nodes
@@ -190,6 +189,7 @@ module io
   el%eltype = elTypes(i_buffer(1))
   el%nodecount = i_buffer(2)
   el%mat = i_buffer(3)
+  el%nlMat = i_buffer(4)
   call MPI_Recv(i_buffer, BUFFER_SIZE, MPI_INT, src, 0, MPI_Comm_World, MPI_STATUS_IGNORE, ierr)
   el%nodes = i_buffer(:el%nodecount)
   call MPI_Recv(r_buffer, BUFFER_SIZE*BUFFER_SIZE, MPI_REAL8, src, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE, ierr)
@@ -197,7 +197,7 @@ module io
   
   end subroutine RecvElement
 
-  subroutine DistributeElements(rank, distributor, nels, epart, global_elements, local_elements, nonlinear)
+  subroutine DistributeElements(rank, distributor, nels, epart, global_elements, local_elements)
     implicit none
 #if defined ALP_PC
 #include <finclude/petsc.h90>
@@ -207,11 +207,8 @@ module io
     integer, intent(in) :: rank, distributor, nels, epart(:)
     type(element), intent(in) :: global_elements(:)
     type(element), allocatable, intent(out) :: local_elements(:)
-    logical :: nonlinear
 
     integer :: i, j
-
-    call MPI_Bcast(nonlinear, 1, MPI_LOGICAL, 0, MPI_COMM_WORLD, ierr)
 
     destroy(local_elements)
     j = 0
@@ -282,22 +279,23 @@ module io
     end do
   end subroutine SetCoords
 
-  subroutine ReadDistMaterials(file, distributor, nmat, mats)
+  subroutine ReadDistMaterials(file, distributor, nmat, mats, ncohmats, cohmats)
     implicit none
 #if defined ALP_PC
 #include <finclude/petsc.h90>
 #else
 #include <petsc-finclude/petsc.h90>
 #endif
-    integer, intent(in) :: nmat, file, distributor
+    integer, intent(in) :: nmat, ncohmats, file, distributor
     real(8), allocatable, intent(out) :: mats(:,:)
+    type(cohMat), allocatable, intent(out) :: cohmats(:)
 
-    integer, parameter :: ELASTIC_MAT_SIZE = 5
-
-    integer :: i, ierr
+    integer :: i, ierr, temp
 
     destroy(mats)
+    destroy(cohmats)
     allocate(mats(nmat, ELASTIC_MAT_SIZE))
+    allocate(cohmats(ncohmats))
 
     if(rank == distributor) then
       do i = 1, nmat
@@ -305,6 +303,27 @@ module io
       end do
     end if
     call MPI_Bcast(mats, nmat, MPI_INTEGER, distributor, MPI_COMM_WORLD, ierr)
+
+    if(rank == distributor) then
+      do i = 1, ncohmats
+        read(file,*) cohmats(i)%seplaw
+        backspace(file)
+        cohmats(i)%propCount = PROP_COUNTS(cohmats(i)%seplaw)
+        allocate(cohmats(i)%props(cohmats(i)%propCount))
+        read(file,*) temp, cohmats(i)%props
+      end do
+    end if
+
+    do i = 1, ncohmats
+      if (rank == distributor) temp = cohmats(i)%seplaw
+      call MPI_Bcast(temp, 1, MPI_INTEGER, distributor, MPI_COMM_WORLD, ierr)
+      if (rank /= distributor) then
+        cohmats(i)%seplaw = temp
+        cohmats(i)%propCount = PROP_COUNTS(cohmats(i)%seplaw)
+        allocate(cohmats(i)%props(cohmats(i)%propCount))
+      end if
+      call MPI_Bcast(cohmats(i)%props, cohmats(i)%propCount, MPI_REAL8, distributor, MPI_COMM_WORLD, ierr)
+    end do 
 
   end subroutine ReadDistMaterials
 

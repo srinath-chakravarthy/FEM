@@ -4,6 +4,8 @@ module elems
   implicit none
   character(3) :: eltype
   integer :: pdim,nodesperel,nps,eldof,eldofp,cpdim, nip
+
+  integer, parameter :: ELASTIC_MAT_SIZE = 5
   
   
   ! Constant element info

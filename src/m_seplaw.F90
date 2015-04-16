@@ -2,6 +2,12 @@
 
 module seplaw
 
+  ! Seplaws' prop count
+
+  integer, parameter :: SEPLAW_COUNT = 1
+  integer, parameter :: PROP_COUNTS(SEPLAW_COUNT) = (/6/)
+
+
   contains
   
   ! Get traction for a single integration point that

@@ -8,15 +8,15 @@ module utils
     sequence
     character(4) :: eltype
     integer, allocatable :: nodes(:)
-    integer :: nodecount, mat
+    integer :: nodecount, mat, nlMat
     real(8), allocatable :: ecoords(:, :)
   end type element
 
   type cohMat
-      integer :: seplaw
+      integer :: seplaw, propCount
       real(8), allocatable :: props(:)
-  end type cohMat
-  
+  end type cohMat 
+
   type array1d
     real(8), allocatable :: array(:)
   end type

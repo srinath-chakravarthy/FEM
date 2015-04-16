@@ -71,11 +71,9 @@ module global
   Vec :: Residual ! SNES residual
   Mat :: Jacobian ! Jacobian
   integer :: iterationCount ! SNES KSP iteration count
-  logical :: nonlinear=.false. ! Check if the nonlinear solver is required
   integer, allocatable :: nonlins(:) ! Local indices of nonlinear elements
   integer :: l_nonlin_ec ! Local nonlinear el count
   integer, allocatable :: nonlin_els(:) ! Indices of linear elements
-  integer :: l_nonlin_nc ! Local nonlinear node count
   
   ! Extractions
   real(8), allocatable :: Array_K(:, :) ! Local Mat_K
@@ -85,12 +83,15 @@ module global
 
   ! Cohesive materials
   integer :: ncohmats
-  
+  type(cohMat), allocatable :: cohmats(:)
+
   interface ApplyNodalForce
     module procedure ApplyNodalForce_All, ApplyNodalForce_BC
   end interface ApplyNodalForce
 
 contains
+
+! Test props: 100.0_8, 0.01_8, 0.01_8, 1.0_8, 0.0_8, 0.0_8
 
   ! Calculate Jacobian for SNES
   subroutine CalcJacobian(Solver, du, Jacobian, PCon, args, ierr) 
@@ -132,6 +133,8 @@ contains
     integer :: nodecount, typeIndex, nip
     real(8) :: sig1, sig2 ! Sign of the operation
     
+    character(4) :: eltype
+
     ! Jacobian resetter
     real(8) :: elasticVals(pdim, pdim)
     
@@ -141,7 +144,7 @@ contains
     !call ResetToElastic(Array_K, l_nonlin_ec, nonlin_els, Jacobian)
     ! Change by Srinath Chakravarthy 
     ! --- Currently resetting Jacobian to contain elastic stiffness matrix
-    call MatCopy(Mat_K, Jacobian,DIFFERENT_NONZERO_PATTERN,ierr)
+    call MatCopy(Mat_K, Jacobian,SAME_NONZERO_PATTERN,ierr)
 !    call PrintMsg("Elastic Matrix")
 !    call MatView(Jacobian, Petsc_Viewer_Stdout_World, ierr)
     call GetVec_U(du, uu)
@@ -149,8 +152,10 @@ contains
     uu = uu + aggregate_u
     
     do i = 1, nels
-      if(local_elements(i)%eltype /= "coh") cycle
-      nip=getNip("coh")
+      if(local_elements(i)%nlMat == 0) cycle
+      eltype = local_elements(i)%eltype
+
+      nip=getNip(eltype)
       nodecount = local_elements(i)%nodecount
       ecoords=>local_elements(i)%ecoords
       nodes=>local_elements(i)%nodes
@@ -158,7 +163,7 @@ contains
       do j=1,nip
         call getCohRels(nodes, uu, j, dt, urel, vrel)
         call getCohGaps(coh_tangent, coh_norm, urel, vrel, gap, vgap)
-        call Seplaw_1_Stiff((/100.0_8, 0.01_8, 0.01_8, 1.0_8, 0.0_8, 0.0_8/), &
+        call Seplaw_1_Stiff(cohMats(local_elements(i)%nlMat)%props, &
                             gap, vgap, dt, stiff_coh)
         sig1 = 1.0d0
         do node1=1, nodecount
@@ -166,14 +171,14 @@ contains
           sig2 = 1.0d0
           do node2=1, nodecount
             if(node2 .gt. nodecount/2) sig2 = -1.0d0
-            call ShapeFunc("coh",j,N1)          
+            call ShapeFunc(local_elements(i)%eltype,j,N1)          
             do dof1=1,PDIM
               do dof2=1,PDIM
                 call MatSetValue(Jacobian, &
                                  pdim*(nl2g(nodes(node1))-1)+dof1-1, &
                                  pdim*(nl2g(nodes(node2))-1)+dof2-1, & 
                                  ((stiff_coh(1,1)*coh_norm(dof1)+stiff_coh(2,1)*coh_tangent(dof1))*coh_norm(dof2)) + &
-                                 ((stiff_coh(1,2)*coh_norm(dof1)+stiff_coh(2,2)*coh_tangent(dof1))*coh_tangent(dof2))*sig1*sig2*N1(node1)*N1(node2)*weights(getElTypeNo("coh"))%array(j)*det, &
+                                 ((stiff_coh(1,2)*coh_norm(dof1)+stiff_coh(2,2)*coh_tangent(dof1))*coh_tangent(dof2))*sig1*sig2*N1(node1)*N1(node2)*weights(getElTypeNo(eltype))%array(j)*det, &
                                  ADD_VALUES, ierr)
               end do
             end do
@@ -287,7 +292,7 @@ contains
     real(8) :: force_coh(pdim)
     real(8), pointer :: N1(:)
     
-    character(4) :: eltype = "coh"
+    character(4) :: eltype
     integer :: nip, nodecount, typeIndex
     
     real(8) sig
@@ -297,22 +302,24 @@ contains
     real(8) :: added_values(pdim) 
     integer :: intp, i, j, k, elNo
 
-    typeIndex = getElTypeNo(eltype) 
-    nip = getNip(eltype)
-    nodecount = getNodeCount(eltype)
+    do i = 1, nels
+      elNo = i
+
+      eltype = local_elements(elNo)%eltype  
+      typeIndex = getElTypeNo(eltype) 
+      nip = getNip(eltype)
+      nodecount = getNodeCount(eltype)
     
-    do i = 1, l_nonlin_ec
-      elNo = nonlin_els(i)
-      if(local_elements(elNo)%eltype /= "coh") cycle
+      if(local_elements(elNo)%nlMat == 0) cycle
       nodes=>local_elements(elNo)%nodes
       ecoords=>local_elements(elNo)%ecoords
       call getCohValues(ecoords, coh_tangent, coh_norm, det)
       do intp = 1, nip
         call getCohRels(nodes, u, intp, dt, urel, vrel)
         call getCohGaps(coh_tangent, coh_norm, urel, vrel, gap, vgap)
-        call Seplaw_1_Tract((/100.0_8, 0.01_8, 0.01_8, 1.0_8, 0.0_8, 0.0_8/), &
+        call Seplaw_1_Tract(cohMats(local_elements(i)%nlMat)%props, &
                             gap, vgap, dt, force_coh)
-        call ShapeFunc("coh", intp, N1)
+        call ShapeFunc(eltype, intp, N1)
         
         sig = 1.0d0
         do node = 1, nodecount
@@ -340,22 +347,29 @@ contains
     
 
   ! Form local [K]
+
   subroutine FormLocalK(el,k,indx)
     implicit none
     integer :: el,indx(:)
     integer, pointer :: enodes(:)
-    real(8) :: k(:,:)
+    real(8) :: k(:,:), E, nu
     real(8), pointer :: ecoords(:, :)
-    character(2) :: strng
-    
+    character(2) :: strng    
+
     enodes=>local_elements(el)%nodes
     ecoords=>local_elements(el)%ecoords
-    E=mat(local_elements(el)%mat,1)
-    nu=mat(local_elements(el)%mat,2)
-    
+
+    if (local_elements(el)%mat == 0) then
+      E = 0.0
+      nu = 0.0
+    else 
+      E=mat(local_elements(el)%mat,1)
+      nu=mat(local_elements(el)%mat,2)
+    end if
+
     call FormElKE(local_elements(el)%eltype, ecoords, E, nu, dt, k)
-    call FormLocalIndx(enodes,indx)  
-    
+    call FormLocalIndx(enodes,indx)    
+
   end subroutine FormLocalK
 
   ! Apply BCs to given matrix

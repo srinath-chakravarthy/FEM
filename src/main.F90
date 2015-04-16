@@ -39,9 +39,9 @@ program main
   if(rank == 0) call ReadParameters(10) !; if (stype /= "implicit") go to 9
   call BroadCastParameters(rank, 0)
   call Initialize(ipoints, weights)
-  if(rank == 0) call ReadElementsCoords(10, global_elements, aggregatenode, nonlinear)
+  if(rank == 0) call ReadElementsCoords(10, global_elements, aggregatenode)
   call PartitionBroadcast(rank, 0, global_elements, aggregatenode, epart)
-  call DistributeElements(rank, 0, nels, epart, global_elements, local_elements, nonlinear)
+  call DistributeElements(rank, 0, nels, epart, global_elements, local_elements)
   if(rank == 0) deallocate(global_elements)
   nels=size(local_elements)
   call SetNonlinEls(nels, local_elements, l_nonlin_ec, nonlin_els)
@@ -96,7 +96,7 @@ program main
   end do
   deallocate(work)
   
-  call ReadDistMaterials(10, 0, nmts, mat)
+  call ReadDistMaterials(10, 0, nmts, mat, ncohmats, cohmats)
   
   call ReadDistBcs(10, nbcs, nprcs, rank, 0, bcnode, bcval)
   call ReadDistForces(10, nfrcs, nprcs, rank, 0, fnode, fval)
@@ -155,7 +155,6 @@ program main
      Petsc_Null_Integer,nodal_bw,Petsc_Null_Integer,Mat_K,ierr)
   call MatSetOption(Mat_K,Mat_New_Nonzero_Allocation_Err,Petsc_False,ierr)
   do i=1,nels
-     if(local_elements(i)%eltype == "coh") cycle
      allocate(k(local_elements(i)%nodecount*pdim,local_elements(i)%nodecount*pdim))
      allocate(indx(local_elements(i)%nodecount*pdim))
      call FormLocalK(i,k,indx)
@@ -235,12 +234,13 @@ program main
     ! Form RHS
     call PrintMsg("    Forming RHS ...")
     call FormRHS(t_init, dt)
-    call VecView(Vec_F,PETSC_VIEWER_STDOUT_WORLD,ierr)
-    
+    ! call VecView(Vec_F,PETSC_VIEWER_STDOUT_WORLD,ierr)
+
     if (stype/="explicit") then
       call PrintMsg("    Solving ...")
-      if(nonlinear) then
+      if(ncohmats /= 0) then
         call CalcJacobian(PETSC_NULL_OBJECT, Vec_U, Jacobian, Jacobian, ierr=ierr)
+
         call SNESSolve(Solver, PETSC_NULL_OBJECT, Vec_U, ierr)
         call SNESGetIterationNumber(Solver, iterationCount, ierr)
         write(buffer, '(I0)'), iterationCount
@@ -318,6 +318,7 @@ program main
   deallocate(local_elements, count_node, stress_node)
   deallocate(aggregate_u, aggregate_stress)
   deallocate(coords,mat, vvec,indxmap,uu,fnode,fval,nl2g)
+  deallocate(cohmats) 
   destroy(cval)
   destroy(tval)
   destroy(telsd)
