@@ -235,12 +235,10 @@ program main
     call PrintMsg("    Forming RHS ...")
     call FormRHS(t_init, dt)
     ! call VecView(Vec_F,PETSC_VIEWER_STDOUT_WORLD,ierr)
-
     if (stype/="explicit") then
       call PrintMsg("    Solving ...")
       if(ncohmats /= 0) then
         call CalcJacobian(PETSC_NULL_OBJECT, Vec_U, Jacobian, Jacobian, ierr=ierr)
-
         call SNESSolve(Solver, PETSC_NULL_OBJECT, Vec_U, ierr)
         call SNESGetIterationNumber(Solver, iterationCount, ierr)
         write(buffer, '(I0)'), iterationCount

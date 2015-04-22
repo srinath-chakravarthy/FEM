@@ -3,6 +3,7 @@
 module global
   use local
   use seplaw
+  use elems
   implicit none
 #if defined ALP_PC
 #include <finclude/petscdef.h>
@@ -152,39 +153,7 @@ contains
     uu = uu + aggregate_u
     
     do i = 1, nels
-      if(local_elements(i)%nlMat == 0) cycle
-      eltype = local_elements(i)%eltype
-
-      nip=getNip(eltype)
-      nodecount = local_elements(i)%nodecount
-      ecoords=>local_elements(i)%ecoords
-      nodes=>local_elements(i)%nodes
-      call getCohValues(ecoords, coh_tangent, coh_norm, det)
-      do j=1,nip
-        call getCohRels(nodes, uu, j, dt, urel, vrel)
-        call getCohGaps(coh_tangent, coh_norm, urel, vrel, gap, vgap)
-        call Seplaw_1_Stiff(cohMats(local_elements(i)%nlMat)%props, &
-                            gap, vgap, dt, stiff_coh)
-        sig1 = 1.0d0
-        do node1=1, nodecount
-          if(node1 .gt. nodecount/2) sig1 = -1.0d0
-          sig2 = 1.0d0
-          do node2=1, nodecount
-            if(node2 .gt. nodecount/2) sig2 = -1.0d0
-            call ShapeFunc(local_elements(i)%eltype,j,N1)          
-            do dof1=1,PDIM
-              do dof2=1,PDIM
-                call MatSetValue(Jacobian, &
-                                 pdim*(nl2g(nodes(node1))-1)+dof1-1, &
-                                 pdim*(nl2g(nodes(node2))-1)+dof2-1, & 
-                                 ((stiff_coh(1,1)*coh_norm(dof1)+stiff_coh(2,1)*coh_tangent(dof1))*coh_norm(dof2)) + &
-                                 ((stiff_coh(1,2)*coh_norm(dof1)+stiff_coh(2,2)*coh_tangent(dof1))*coh_tangent(dof2))*sig1*sig2*N1(node1)*N1(node2)*weights(getElTypeNo(eltype))%array(j)*det, &
-                                 ADD_VALUES, ierr)
-              end do
-            end do
-          end do
-        end do
-      end do
+      if (local_elements(i)%nlMat == 1) call applyStiff_1(i, uu, dt, Jacobian)
     end do
     
     call MatAssemblyBegin(Jacobian,Mat_Final_Assembly, ierr)
@@ -249,6 +218,8 @@ contains
     integer :: args(*)
     PetscErrorCode :: ierr
     
+    integer :: i
+
     real(8) :: current_u(pdim*nlnds)
     Vec :: AppliedForce
     
@@ -258,7 +229,16 @@ contains
     current_u = current_u + aggregate_u
     
     call VecCopy(Vec_F, Residual, ierr)
-    call ApplyCohForces(Residual, current_u, dt)
+    do i = 1, nels
+      if (local_elements(i)%nlMat == 1) call applyTract_1(i, current_u, dt, Residual)
+    end do
+    
+    call VecAssemblyBegin(Residual, ierr)
+    call VecAssemblyEnd(Residual, ierr)
+    call EnforceBCForce(Residual, dt)
+    call VecAssemblyBegin(Residual, ierr)
+    call VecAssemblyEnd(Residual, ierr)
+    
     ! --- Apply Displacement BC's to Residual here
     call EnforceBCForce(Residual,dt)
 
@@ -281,70 +261,6 @@ contains
     
     
   end subroutine CalcResidual
-    
-  subroutine ApplyCohForces(Vec_F, u, dt)
-    implicit none
-    Vec, intent(out) :: Vec_F
-    real(8), intent(in) :: u(pdim*nlnds), dt
-    
-    real(8) :: coh_tangent(pdim), coh_norm(pdim), coh_gap, det
-    real(8) :: urel(pdim), vrel(pdim), gap(pdim), vgap(pdim)
-    real(8) :: force_coh(pdim)
-    real(8), pointer :: N1(:)
-    
-    character(4) :: eltype
-    integer :: nip, nodecount, typeIndex
-    
-    real(8) sig
-    integer :: node1, dof
-    real(8), pointer :: ecoords(:,:)
-    integer, pointer :: nodes(:)
-    real(8) :: added_values(pdim) 
-    integer :: intp, i, j, k, elNo
-
-    do i = 1, nels
-      elNo = i
-
-      eltype = local_elements(elNo)%eltype  
-      typeIndex = getElTypeNo(eltype) 
-      nip = getNip(eltype)
-      nodecount = getNodeCount(eltype)
-    
-      if(local_elements(elNo)%nlMat == 0) cycle
-      nodes=>local_elements(elNo)%nodes
-      ecoords=>local_elements(elNo)%ecoords
-      call getCohValues(ecoords, coh_tangent, coh_norm, det)
-      do intp = 1, nip
-        call getCohRels(nodes, u, intp, dt, urel, vrel)
-        call getCohGaps(coh_tangent, coh_norm, urel, vrel, gap, vgap)
-        call Seplaw_1_Tract(cohMats(local_elements(i)%nlMat)%props, &
-                            gap, vgap, dt, force_coh)
-        call ShapeFunc(eltype, intp, N1)
-        
-        sig = 1.0d0
-        do node = 1, nodecount
-          if(node .gt. nodecount/2) sig = -1.0d0
-          added_values = 0.0
-          do dof = 1, pdim
-            added_values(dof) = sig*N1(node)* &
-                                (force_coh(1)*coh_norm(dof)+force_coh(2)*coh_tangent(dof))  &
-                                *weights(typeIndex)%array(intp)*det
-!!$            write(*,'(A6,3I3,2E12.5)') 'VECVEC', node, nl2g(node),  dof, added_values(dof)
-          end do
-          call ApplyNodalForce(Vec_F, nl2g(local_elements(elNo)%nodes(node)), added_values, .true.)
-!!$          write(*,'(A6,3I3,10E12.5)') 'VECVEC', node, nl2g(node), dof, urel, vrel, force_coh, added_values(dof), u(2*(node-1) + 1), u(2*(node-1)+2)
-        end do
-      end do
-    end do
-    
-    call VecAssemblyBegin(Vec_F, ierr)
-    call VecAssemblyEnd(Vec_F, ierr)
-    call EnforceBCForce(Vec_F, dt)
-    call VecAssemblyBegin(Vec_F, ierr)
-    call VecAssemblyEnd(Vec_F, ierr)
-    
-  end subroutine ApplyCohForces
-    
 
   ! Form local [K]
 
@@ -752,4 +668,147 @@ contains
     end select
     close(10); k=k+1
   end subroutine WriteOutput
+
+  subroutine applyTract_1(local_elements_index, du, dt, Vec_F)
+    implicit none
+#if defined ALP_PC
+#include <finclude/petsc.h90>
+#else
+#include <petsc-finclude/petsc.h90>
+#endif
+    integer, target, intent(in) :: local_elements_index
+    real(8), intent(in) :: du(:), dt
+    Vec, intent(inout) :: Vec_F
+
+    type(element), pointer :: el
+
+    real(8) :: coh_tangent(pdim), coh_norm(pdim), coh_gap, det
+    real(8) :: urel(pdim), vrel(pdim), gap(pdim), vgap(pdim)
+    real(8) :: force_coh(pdim)
+    real(8), pointer :: N1(:)
+    
+    character(4) :: eltype
+    integer :: nip, nodecount, typeIndex
+    
+    real(8) sig
+    integer :: node1, dof
+    real(8), pointer :: ecoords(:,:)
+    integer, pointer :: nodes(:)
+    real(8) :: added_values(pdim) 
+    integer :: intp, i, j, k
+    
+    el => local_elements(local_elements_index)
+
+    eltype = el%eltype  
+    typeIndex = getElTypeNo(eltype) 
+    nip = getNip(eltype)
+    nodecount = el%nodecount
+    
+    nodes=>el%nodes
+    ecoords=>el%ecoords
+    call getCohValues(ecoords, coh_tangent, coh_norm, det)
+    do intp = 1, nip
+      call getCohRels(nodes, du, intp, dt, urel, vrel)
+      call getCohGaps(coh_tangent, coh_norm, urel, vrel, gap, vgap)
+      call Seplaw_1_Tract(cohMats(el%nlMat)%props, &
+                          gap, vgap, dt, force_coh)
+      call ShapeFunc(eltype, intp, N1)
+      
+      sig = 1.0d0
+      do node = 1, nodecount
+        if(node .gt. nodecount/2) sig = -1.0d0
+        added_values = 0.0
+        do dof = 1, pdim
+          added_values(dof) = sig*N1(node)* &
+                              (force_coh(1)*coh_norm(dof)+force_coh(2)*coh_tangent(dof))  &
+                              *weights(typeIndex)%array(intp)*det
+        end do
+        call ApplyNodalForce(Vec_F, nl2g(el%nodes(node)), added_values, .true.)
+      end do
+    end do
+
+  end subroutine applyTract_1
+
+  subroutine applyStiff_1(local_elements_index, du, dt, Stiff_Mat)
+#if defined ALP_PC
+#include <finclude/petsc.h90>
+#else
+#include <petsc-finclude/petsc.h90>
+#endif
+    integer, intent(in) :: local_elements_index
+    real(8), intent(in) :: du(:), dt
+    Mat, intent(inout) :: Stiff_Mat
+
+    type(element), pointer :: el
+
+    ! Variables
+    ! det: Tangent's magnitude / 2
+    ! uu: current total magnitude
+    ! coh_tangent: tanget of the cohesive
+    ! coh_norm: normal to the cohesive
+    ! coh_gap: 
+    ! urel: relative displacement of the cohesive
+    ! vrel: relative velocity
+    ! stiff_u: single integration point's stiffness contribution
+    ! N1, N2: Shape funcs for cohesive
+    integer :: i, j, k
+    integer :: dof1, dof2
+    real(8) :: det 
+    real(8) :: coh_tangent(pdim), coh_norm(pdim), coh_gap
+    real(8) :: urel(pdim), vrel(pdim), gap(pdim), vgap(pdim)
+    real(8) :: stiff_coh(pdim, pdim)
+    real(8), pointer :: N1(:)
+    
+    integer :: node1, node2
+    real(8), pointer :: ecoords(:,:)
+    integer, pointer :: nodes(:)
+    integer :: nodecount, typeIndex, nip
+    real(8) :: sig1, sig2 ! Sign of the operation
+    
+    character(4) :: eltype
+
+    ! Jacobian resetter
+    real(8) :: elasticVals(pdim, pdim)
+    
+    ! Constants
+    real(8), parameter :: HALF = 0.5
+
+    el => local_elements(local_elements_index)
+
+      eltype = el%eltype
+
+      nip=getNip(eltype)
+      nodecount = el%nodecount
+      ecoords=>el%ecoords
+      nodes=>el%nodes
+      call getCohValues(ecoords, coh_tangent, coh_norm, det)
+
+      do j=1,nip
+        call getCohRels(nodes, du, j, dt, urel, vrel)
+        call getCohGaps(coh_tangent, coh_norm, urel, vrel, gap, vgap)
+        call Seplaw_1_Stiff(cohMats(el%nlMat)%props, &
+                            gap, vgap, dt, stiff_coh)
+        sig1 = 1.0d0
+        do node1=1, nodecount
+          if(node1 .gt. nodecount/2) sig1 = -1.0d0
+          sig2 = 1.0d0
+          do node2=1, nodecount
+            if(node2 .gt. nodecount/2) sig2 = -1.0d0
+            call ShapeFunc(el%eltype,j,N1)          
+            do dof1=1,PDIM
+              do dof2=1,PDIM
+                call MatSetValue(Stiff_Mat, &
+                                 pdim*(nl2g(nodes(node1))-1)+dof1-1, &
+                                 pdim*(nl2g(nodes(node2))-1)+dof2-1, & 
+                                 ((stiff_coh(1,1)*coh_norm(dof1)+stiff_coh(2,1)*coh_tangent(dof1))*coh_norm(dof2)) + &
+                                 ((stiff_coh(1,2)*coh_norm(dof1)+stiff_coh(2,2)*coh_tangent(dof1))*coh_tangent(dof2))*sig1*sig2*N1(node1)*N1(node2)*weights(getElTypeNo(eltype))%array(j)*det, &
+                                 ADD_VALUES, ierr)
+              end do
+            end do
+          end do
+        end do
+      end do
+
+  end subroutine applyStiff_1
+
 end module global

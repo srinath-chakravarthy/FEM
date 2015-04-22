@@ -3,20 +3,6 @@ module utils
   implicit none
   real(8),parameter :: f0=0.0d0,f1=1.0d0,f2=2.0d0,f3=3.0d0,f4=4.0d0,f6=6.0d0,  &
      gravity=9.80665d0
-  
-  type  element
-    sequence
-    character(4) :: eltype
-    integer, allocatable :: nodes(:)
-    integer :: nodecount, mat, nlMat
-    real(8), allocatable :: ecoords(:, :)
-  end type element
-
-  type cohMat
-      integer :: seplaw, propCount
-      real(8), allocatable :: props(:)
-  end type cohMat 
-
   type array1d
     real(8), allocatable :: array(:)
   end type

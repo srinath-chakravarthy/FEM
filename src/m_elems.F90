@@ -2,11 +2,24 @@ module elems
 
   use utils
   implicit none
+  
+  type  element
+    sequence
+    character(4) :: eltype
+    integer, allocatable :: nodes(:)
+    integer :: nodecount, mat, nlMat
+    real(8), allocatable :: ecoords(:, :)
+  end type element
+
+  type cohMat
+      integer :: seplaw, propCount
+      real(8), allocatable :: props(:)
+  end type cohMat
+
   character(3) :: eltype
   integer :: pdim,nodesperel,nps,eldof,eldofp,cpdim, nip
 
-  integer, parameter :: ELASTIC_MAT_SIZE = 5
-  
+  integer, parameter :: ELASTIC_MAT_SIZE = 5  
   
   ! Constant element info
   integer, parameter :: elTypeCount = 5
