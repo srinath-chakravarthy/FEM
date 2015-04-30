@@ -473,4 +473,84 @@ module io
 
     ntrcs = localTractCount
   end subroutine ReadDistTractions
+
+
+  
+  ! Write results in ASCII VTK (legacy) format
+  subroutine WriteOutput
+    implicit none
+#if defined ALP_PC
+#include <finclude/petscmat.h90>
+#include <finclude/petscsys.h>
+#else
+#include <petsc-finclude/petscmat.h90>
+#include <petsc-finclude/petscsys.h>
+#endif
+    character(64) :: name,fmt
+    character(32) :: buffer
+    integer,save :: k=0
+    integer :: i,j,j1,lnnds,lnels
+    real(8),pointer :: field_val(:), stress_val(:, :)
+    field_val => aggregate_u
+    stress_val => aggregate_stress
+    write(name,'(I0,A,I0.6,A)')rank,"_output_",k,".vtk"
+    open(10,file=adjustl(name),status='replace')
+    lnnds=size(coords,1)
+    lnels=size(local_elements)
+    write(10,'(A)')"# vtk DataFile Version 2.0"
+    write(10,'(A)')"File written by Defmod"
+    write(10,'(A)')"ASCII"
+    write(10,'(A)')"DATASET UNSTRUCTURED_GRID"
+    write(10,'(A,I0,A)')"POINTS ",lnnds," double"
+    fmt="(3(F0.3,1X))"
+    select case(pdim)
+    case(2)
+       do i=1,lnnds
+          write(10,fmt)(/(coords(i,:)),f0/)
+       end do
+    case(3)
+       do i=1,lnnds
+          write(10,fmt)(/(coords(i,:))/)
+       end do
+    end select
+    ! j stores the total number of columns
+    j = 0
+    do i=1, lnels
+      j = j + local_elements(i)%nodecount+1
+    end do
+    write(10,'(A,I0,1X,I0)')"CELLS ",lnels, j
+    do i=1,lnels
+       write(buffer, '(I0)') local_elements(i)%nodecount
+       fmt = "(I0," // trim(buffer) // "(1X,I0))"
+       write(10,fmt)local_elements(i)%nodecount,local_elements(i)%nodes-1
+    end do
+    write(10,'(A,I0)')"CELL_TYPES ",lnels
+    do i=1,lnels
+       write(10,'(I0)') getVtkid(local_elements(i)%eltype)
+    end do
+    write(10,'(A,I0)')"POINT_DATA ",lnnds
+    write(10,'(A,I0)') "SCALARS STRESS FLOAT ", cpdim
+    write(10,'(A)') "LOOKUP_TABLE DEFAULT"
+    write(buffer, '(I0)') cpdim
+    fmt = "(" // trim(buffer) // "(F0.6,1X))"
+    do i = 1, lnnds
+      write(10, fmt) stress_val(i, :)
+    end do
+    j=pdim
+    write(10,'(A)')"VECTORS displacements double"
+    fmt="(3(F0.6,1X))"
+    select case(pdim)
+    case(2)
+       do i=1,lnnds
+          j1=i*j
+          write(10,fmt)(/field_val(j1-1),field_val(j1),f0/) ! 2D U
+       end do
+    case(3)
+       do i=1,lnnds
+          j1=i*j
+          write(10,fmt)(/field_val(j1-2),field_val(j1-1),field_val(j1)/) ! 3D U
+       end do
+    end select
+    close(10); k=k+1
+  end subroutine WriteOutput
 end module io

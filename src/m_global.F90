@@ -142,9 +142,6 @@ contains
     ! Constants
     real(8), parameter :: HALF = 0.5
     
-    !call ResetToElastic(Array_K, l_nonlin_ec, nonlin_els, Jacobian)
-    ! Change by Srinath Chakravarthy 
-    ! --- Currently resetting Jacobian to contain elastic stiffness matrix
     call MatCopy(Mat_K, Jacobian,SAME_NONZERO_PATTERN,ierr)
 !    call PrintMsg("Elastic Matrix")
 !    call MatView(Jacobian, Petsc_Viewer_Stdout_World, ierr)
@@ -153,7 +150,8 @@ contains
     uu = uu + aggregate_u
     
     do i = 1, nels
-      if (local_elements(i)%nlMat == 1) call applyStiff_1(i, uu, dt, Jacobian)
+      if(local_elements(i)%nlMat == 0) cycle
+      if (local_elements(i)%nlMat == 1) call applyStiff_1(local_elements(i), uu, dt, Jacobian)
     end do
     
     call MatAssemblyBegin(Jacobian,Mat_Final_Assembly, ierr)
@@ -163,47 +161,6 @@ contains
     call MatAssemblyEnd(Jacobian, Mat_Final_Assembly,ierr)
     !!$call MatView(Jacobian, Petsc_Viewer_Stdout_World, ierr)
   end subroutine
-    
-  ! Resets nonlinears stiffnesses to elastic values
-  subroutine ResetToElastic(Local_Stiff, l_nonlin_ec, nonlin_els, dst)
-    implicit none
-#if defined ALP_PC
-#include <finclude/petsc.h90>
-#else
-#include <petsc-finclude/petsc.h90>
-#endif
-    real(8), intent(in) :: Local_Stiff(0:nlnds*pdim-1, 0:nlnds*pdim-1)
-    Mat, intent(out) :: dst
-    integer, intent(in) :: l_nonlin_ec
-    integer, intent(in) :: nonlin_els(l_nonlin_ec)
-    
-    integer :: el, dof1, dof2
-    integer :: i, j, k, node1, node2
-    integer :: ierr
-    
-    do i = 1, l_nonlin_ec
-      el = nonlin_els(i)
-      do j = 1, local_elements(el)%nodecount
-        node1 = local_elements(el)%nodes(j)
-        do k = 1, local_elements(el)%nodecount
-          node2 = local_elements(el)%nodes(k)
-          do dof1 = 0, pdim-1
-            do dof2 = 0, pdim-1
-              call MatSetValue(dst,&
-                               pdim*(nl2g(node1)-1)+dof1,&
-                               pdim*(nl2g(node2)-1)+dof2,&
-                               Local_Stiff(pdim*(node1-1)+dof1,&
-                                           pdim*(node2-1)+dof2),&
-                               INSERT_VALUES, ierr)
-            end do
-          end do
-        end do
-      end do
-    end do
-    
-    call MatAssemblyBegin(dst,Mat_Final_Assembly, ierr)
-    call MatAssemblyEnd(dst, Mat_Final_Assembly, ierr)
-  end subroutine ResetToElastic
 
   ! Calculate Residual for SNES
   subroutine CalcResidual(Solver, du, Residual, args, ierr)
@@ -230,7 +187,7 @@ contains
     
     call VecCopy(Vec_F, Residual, ierr)
     do i = 1, nels
-      if (local_elements(i)%nlMat == 1) call applyTract_1(i, current_u, dt, Residual)
+      if (local_elements(i)%nlMat == 1) call applyTract_1(local_elements(i), current_u, dt, Residual)
     end do
     
     call VecAssemblyBegin(Residual, ierr)
@@ -591,96 +548,16 @@ contains
     call VecRestoreArrayF90(Seq_U,pntr,ierr)
   end subroutine GetVec_U
 
-  ! Write results in ASCII VTK (legacy) format
-  subroutine WriteOutput
-    implicit none
-#if defined ALP_PC
-#include <finclude/petscmat.h90>
-#include <finclude/petscsys.h>
-#else
-#include <petsc-finclude/petscmat.h90>
-#include <petsc-finclude/petscsys.h>
-#endif
-    character(64) :: name,fmt
-    character(32) :: buffer
-    integer,save :: k=0
-    integer :: i,j,j1,lnnds,lnels
-    real(8),pointer :: field_val(:), stress_val(:, :)
-    field_val => aggregate_u
-    stress_val => aggregate_stress
-    write(name,'(I0,A,I0.6,A)')rank,"_output_",k,".vtk"
-    open(10,file=adjustl(name),status='replace')
-    lnnds=size(coords,1)
-    lnels=size(local_elements)
-    write(10,'(A)')"# vtk DataFile Version 2.0"
-    write(10,'(A)')"File written by Defmod"
-    write(10,'(A)')"ASCII"
-    write(10,'(A)')"DATASET UNSTRUCTURED_GRID"
-    write(10,'(A,I0,A)')"POINTS ",lnnds," double"
-    fmt="(3(F0.3,1X))"
-    select case(pdim)
-    case(2)
-       do i=1,lnnds
-          write(10,fmt)(/(coords(i,:)),f0/)
-       end do
-    case(3)
-       do i=1,lnnds
-          write(10,fmt)(/(coords(i,:))/)
-       end do
-    end select
-    ! j stores the total number of columns
-    j = 0
-    do i=1, lnels
-      j = j + local_elements(i)%nodecount+1
-    end do
-    write(10,'(A,I0,1X,I0)')"CELLS ",lnels, j
-    do i=1,lnels
-       write(buffer, '(I0)') local_elements(i)%nodecount
-       fmt = "(I0," // trim(buffer) // "(1X,I0))"
-       write(10,fmt)local_elements(i)%nodecount,local_elements(i)%nodes-1
-    end do
-    write(10,'(A,I0)')"CELL_TYPES ",lnels
-    do i=1,lnels
-       write(10,'(I0)') getVtkid(local_elements(i)%eltype)
-    end do
-    write(10,'(A,I0)')"POINT_DATA ",lnnds
-    write(10,'(A,I0)') "SCALARS STRESS FLOAT ", cpdim
-    write(10,'(A)') "LOOKUP_TABLE DEFAULT"
-    write(buffer, '(I0)') cpdim
-    fmt = "(" // trim(buffer) // "(F0.6,1X))"
-    do i = 1, lnnds
-      write(10, fmt) stress_val(i, :)
-    end do
-    j=pdim
-    write(10,'(A)')"VECTORS displacements double"
-    fmt="(3(F0.6,1X))"
-    select case(pdim)
-    case(2)
-       do i=1,lnnds
-          j1=i*j
-          write(10,fmt)(/field_val(j1-1),field_val(j1),f0/) ! 2D U
-       end do
-    case(3)
-       do i=1,lnnds
-          j1=i*j
-          write(10,fmt)(/field_val(j1-2),field_val(j1-1),field_val(j1)/) ! 3D U
-       end do
-    end select
-    close(10); k=k+1
-  end subroutine WriteOutput
-
-  subroutine applyTract_1(local_elements_index, du, dt, Vec_F)
+  subroutine applyTract_1(el, du, dt, Vec_F)
     implicit none
 #if defined ALP_PC
 #include <finclude/petsc.h90>
 #else
 #include <petsc-finclude/petsc.h90>
 #endif
-    integer, target, intent(in) :: local_elements_index
-    real(8), intent(in) :: du(:), dt
-    Vec, intent(inout) :: Vec_F
-
-    type(element), pointer :: el
+    real(8) :: du(:), dt
+    Vec :: Vec_F
+    type(element), target :: el
 
     real(8) :: coh_tangent(pdim), coh_norm(pdim), coh_gap, det
     real(8) :: urel(pdim), vrel(pdim), gap(pdim), vgap(pdim)
@@ -696,8 +573,6 @@ contains
     integer, pointer :: nodes(:)
     real(8) :: added_values(pdim) 
     integer :: intp, i, j, k
-    
-    el => local_elements(local_elements_index)
 
     eltype = el%eltype  
     typeIndex = getElTypeNo(eltype) 
@@ -729,17 +604,15 @@ contains
 
   end subroutine applyTract_1
 
-  subroutine applyStiff_1(local_elements_index, du, dt, Stiff_Mat)
+  subroutine applyStiff_1(el, du, dt, Stiff_Mat)
 #if defined ALP_PC
 #include <finclude/petsc.h90>
 #else
 #include <petsc-finclude/petsc.h90>
 #endif
-    integer, intent(in) :: local_elements_index
     real(8), intent(in) :: du(:), dt
     Mat, intent(inout) :: Stiff_Mat
-
-    type(element), pointer :: el
+    type(element), target :: el
 
     ! Variables
     ! det: Tangent's magnitude / 2
@@ -772,8 +645,6 @@ contains
     
     ! Constants
     real(8), parameter :: HALF = 0.5
-
-    el => local_elements(local_elements_index)
 
       eltype = el%eltype
 
