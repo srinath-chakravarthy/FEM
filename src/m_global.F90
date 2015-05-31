@@ -109,35 +109,13 @@ contains
     integer(8), optional :: args(*)
     PetscErrorCode :: ierr
     
-    ! Variables
-    ! det: Tangent's magnitude / 2
-    ! uu: current total magnitude
-    ! coh_tangent: tanget of the cohesive
-    ! coh_norm: normal to the cohesive
-    ! coh_gap: 
-    ! urel: relative displacement of the cohesive
-    ! vrel: relative velocity
-    ! stiff_u: single integration point's stiffness contribution
-    ! N1, N2: Shape funcs for cohesive
     integer :: i, j, k
-    integer :: dof1, dof2
-    real(8) :: det 
-    real(8) :: uu(nlnds * pdim)
-    real(8) :: coh_tangent(pdim), coh_norm(pdim), coh_gap
-    real(8) :: urel(pdim), vrel(pdim), gap(pdim), vgap(pdim)
-    real(8) :: stiff_coh(pdim, pdim)
-    real(8), pointer :: N1(:)
-    
-    integer :: node1, node2
-    real(8), pointer :: ecoords(:,:)
-    integer, pointer :: nodes(:)
-    integer :: nodecount, typeIndex, nip
-    real(8) :: sig1, sig2 ! Sign of the operation
-    
-    character(4) :: eltype
+    integer :: node1, node2, dof1, dof2
+    real(8), allocatable :: appliedStiff(:, :)
 
-    ! Jacobian resetter
-    real(8) :: elasticVals(pdim, pdim)
+    ! Convenience
+    type(element), pointer :: el
+
     
     ! Constants
     real(8), parameter :: HALF = 0.5
@@ -150,8 +128,25 @@ contains
     uu = uu + aggregate_u
     
     do i = 1, nels
-      if(local_elements(i)%nlMat == 0) cycle
-      if (local_elements(i)%nlMat == 1) call applyStiff_1(local_elements(i), uu, dt, Jacobian)
+      el => local_elements(i)
+      if(allocated(appliedStiff)) deallocate(appliedStiff)
+      allocate(appliedStiff(pdim * el%nodeCount, pdim * el%nodeCount))
+
+      if(el%nlMat == 0) then
+        cycle
+      else if (local_elements(i)%nlMat == 1) then
+        call applyStiff_1(local_elements(i), uu, dt, appliedStiff)
+      else
+        call PrintMsg("Invalid material")
+      endif
+
+      do node1 = 1, el%nodeCount; do node2 = 1, el%nodeCount; do dof1 = 1, pdim; do dof2 = 1, pdim
+      call MatSetValue(Jacobian, &
+                       pdim*(nl2g(el%nodes(node1))-1)+dof1-1, &
+                       pdim*(nl2g(el%nodes(node2))-1)+dof2-1, & 
+                       appliedStiff((node1 - 1) * pdim + dof1, (node2 - 1) * pdim + dof2), &
+                       ADD_VALUES, ierr)
+      enddo; enddo; enddo; enddo
     end do
     
     call MatAssemblyBegin(Jacobian,Mat_Final_Assembly, ierr)
@@ -174,20 +169,40 @@ contains
     Vec :: du, Residual
     integer :: args(*)
     PetscErrorCode :: ierr
-    
-    integer :: i
-
+    integer :: i, j
     real(8) :: current_u(pdim*nlnds)
     Vec :: AppliedForce
-    
+    real(8), allocatable :: nodeTraction(:)
+
+    ! Convenience
+    type(element), pointer :: el
+
+    ! Constants
     real(8), parameter :: MINUS = -1.0d0 
     
     call GetVec_U(du, current_u)
     current_u = current_u + aggregate_u
     
     call VecCopy(Vec_F, Residual, ierr)
+    ! For each element
     do i = 1, nels
-      if (local_elements(i)%nlMat == 1) call applyTract_1(local_elements(i), current_u, dt, Residual)
+      el => local_elements(i)
+      if(allocated(nodeTraction)) deallocate(nodeTraction)
+      allocate(nodeTraction(pdim * el%nodeCount))
+
+      ! Get force
+      if(el%nlMat == 0) then
+        cycle
+      else if (el%nlMat == 1) then 
+        call applyTract_1(el, current_u, dt, nodeTraction)
+      else 
+        call PrintMsg("Invalid nonlinear material")
+      endif
+      
+      ! Apply force
+      do j = 1, local_elements(i)%nodeCount
+        call ApplyNodalForce(Residual, nl2g(el%nodes(j)), nodeTraction((j - 1) * pdim + 1:(j - 1) * pdim + 2), .true.)
+      enddo
     end do
     
     call VecAssemblyBegin(Residual, ierr)
@@ -548,7 +563,7 @@ contains
     call VecRestoreArrayF90(Seq_U,pntr,ierr)
   end subroutine GetVec_U
 
-  subroutine applyTract_1(el, du, dt, Vec_F)
+  subroutine applyTract_1_Object(el, du, dt, Vec_F)
     implicit none
 #if defined ALP_PC
 #include <finclude/petsc.h90>
@@ -602,9 +617,71 @@ contains
       end do
     end do
 
-  end subroutine applyTract_1
+  end subroutine 
 
-  subroutine applyStiff_1(el, du, dt, Stiff_Mat)
+  subroutine applyTract_1(el, du, dt, result)
+    implicit none
+#if defined ALP_PC
+#include <finclude/petsc.h90>
+#else
+#include <petsc-finclude/petsc.h90>
+#endif
+    real(8) :: du(:), dt
+    type(element), target :: el
+    !Vec :: Vec_F
+    real(8) :: result(pdim * el%nodeCount)
+
+    real(8) :: coh_tangent(pdim), coh_norm(pdim), coh_gap, det
+    real(8) :: urel(pdim), vrel(pdim), gap(pdim), vgap(pdim)
+    real(8) :: force_coh(pdim)
+    real(8), pointer :: N1(:)
+    
+    character(4) :: eltype
+    integer :: nip, nodecount, typeIndex
+    
+    real(8) sig
+    integer :: node1, dof
+    real(8), pointer :: ecoords(:,:)
+    integer, pointer :: nodes(:)
+    !real(8) :: added_values(pdim) 
+    integer :: intp, i, j, k
+
+    eltype = el%eltype  
+    typeIndex = getElTypeNo(eltype) 
+    nip = getNip(eltype)
+    nodecount = el%nodecount
+    
+    nodes=>el%nodes
+    ecoords=>el%ecoords
+    call getCohValues(ecoords, coh_tangent, coh_norm, det)
+    do intp = 1, nip
+      call getCohRels(nodes, du, intp, dt, urel, vrel)
+      call getCohGaps(coh_tangent, coh_norm, urel, vrel, gap, vgap)
+      call Seplaw_1_Tract(cohMats(el%nlMat)%props, &
+                          gap, vgap, dt, force_coh)
+      call ShapeFunc(eltype, intp, N1)
+      
+      sig = 1.0d0
+      do node = 1, nodecount
+        if(node .gt. nodecount/2) sig = -1.0d0
+        !added_values = 0.0
+        do dof = 1, pdim
+          result((node - 1) * pdim + dof) = sig*N1(node)* &
+                              (force_coh(1)*coh_norm(dof)+force_coh(2)*coh_tangent(dof))  &
+                              *weights(typeIndex)%array(intp)*det 
+!          added_values(dof) = sig*N1(node)* &
+ !                             (force_coh(1)*coh_norm(dof)+force_coh(2)*coh_tangent(dof))  &
+  !                            *weights(typeIndex)%array(intp)*det
+        end do
+        !result((node - 1) * pdim + 1:(node - 1) * pdim + 2) = added_values
+        !print*, result
+        !call ApplyNodalForce(Vec_F, nl2g(el%nodes(node)), added_values, .true.)
+      end do
+    end do
+
+  end subroutine !applyTract_1
+
+  subroutine applyStiff_1_Obj(el, du, dt, Stiff_Mat)
 #if defined ALP_PC
 #include <finclude/petsc.h90>
 #else
@@ -680,6 +757,91 @@ contains
         end do
       end do
 
-  end subroutine applyStiff_1
+  end subroutine applyStiff_1_Obj
+
+  subroutine applyStiff_1(el, du, dt, result)
+#if defined ALP_PC
+#include <finclude/petsc.h90>
+#else
+#include <petsc-finclude/petsc.h90>
+#endif
+    real(8), intent(in) :: du(:), dt
+    !Mat, intent(inout) :: Stiff_Mat
+    type(element), target :: el
+    real(8) :: result(pdim * el%nodeCount, pdim * el%nodeCount)
+
+    ! Variables
+    ! det: Tangent's magnitude / 2
+    ! uu: current total magnitude
+    ! coh_tangent: tanget of the cohesive
+    ! coh_norm: normal to the cohesive
+    ! coh_gap: 
+    ! urel: relative displacement of the cohesive
+    ! vrel: relative velocity
+    ! stiff_u: single integration point's stiffness contribution
+    ! N1, N2: Shape funcs for cohesive
+    integer :: i, j, k
+    integer :: dof1, dof2
+    real(8) :: det 
+    real(8) :: coh_tangent(pdim), coh_norm(pdim), coh_gap
+    real(8) :: urel(pdim), vrel(pdim), gap(pdim), vgap(pdim)
+    real(8) :: stiff_coh(pdim, pdim)
+    real(8), pointer :: N1(:)
+    
+    integer :: node1, node2
+    real(8), pointer :: ecoords(:,:)
+    integer, pointer :: nodes(:)
+    integer :: nodecount, typeIndex, nip
+    real(8) :: sig1, sig2 ! Sign of the operation
+    
+    character(4) :: eltype
+
+    ! Jacobian resetter
+    real(8) :: elasticVals(pdim, pdim)
+    
+    ! Constants
+    real(8), parameter :: HALF = 0.5
+
+      eltype = el%eltype
+
+      nip=getNip(eltype)
+      nodecount = el%nodecount
+      ecoords=>el%ecoords
+      nodes=>el%nodes
+      call getCohValues(ecoords, coh_tangent, coh_norm, det)
+
+      result = 0
+
+      do j=1,nip
+        call getCohRels(nodes, du, j, dt, urel, vrel)
+        call getCohGaps(coh_tangent, coh_norm, urel, vrel, gap, vgap)
+        call Seplaw_1_Stiff(cohMats(el%nlMat)%props, &
+                            gap, vgap, dt, stiff_coh)
+        sig1 = 1.0d0
+        do node1=1, nodecount
+          if(node1 .gt. nodecount/2) sig1 = -1.0d0
+          sig2 = 1.0d0
+          do node2=1, nodecount
+            if(node2 .gt. nodecount/2) sig2 = -1.0d0
+            call ShapeFunc(el%eltype,j,N1)          
+            do dof1=1,PDIM
+              do dof2=1,PDIM
+                result((node1 - 1 ) * pdim + dof1, (node2 - 1) * pdim + dof2) = &
+                    result((node1 - 1 ) * pdim + dof1, (node2 - 1) * pdim + dof2) + ((stiff_coh(1,1)*coh_norm(dof1)+stiff_coh(2,1)*coh_tangent(dof1))*coh_norm(dof2)) + &
+                    ((stiff_coh(1,2)*coh_norm(dof1)+stiff_coh(2,2)*coh_tangent(dof1))*coh_tangent(dof2))*sig1*sig2*N1(node1)*N1(node2)*weights(getElTypeNo(eltype))%array(j)*det
+!                call MatSetValue(Stiff_Mat, &
+ !                                pdim*(nl2g(nodes(node1))-1)+dof1-1, &
+  !                               pdim*(nl2g(nodes(node2))-1)+dof2-1, & 
+   !                              ((stiff_coh(1,1)*coh_norm(dof1)+stiff_coh(2,1)*coh_tangent(dof1))*coh_norm(dof2)) + &
+    !                             ((stiff_coh(1,2)*coh_norm(dof1)+stiff_coh(2,2)*coh_tangent(dof1))*coh_tangent(dof2))*sig1*sig2*N1(node1)*N1(node2)*weights(getElTypeNo(eltype))%array(j)*det, &
+     !                            ADD_VALUES, ierr)
+              end do
+            end do
+          end do
+        end do
+      end do
+
+
+  end subroutine ! applyStiff_1
 
 end module global
